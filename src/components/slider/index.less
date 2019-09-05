@@ -1,0 +1,72 @@
+.comp-slider-container {
+  height:30px;
+  .slide-box {
+    width: 100%;
+    height: 4px;
+    border: 1px solid #dcdcdc;
+    position: relative;
+    background: #B2B2B2;
+    border-radius: 5px;
+    .slide {
+      background: #5CB1FF;
+      height:100%;
+      position: relative;
+      .block {        
+        border-radius: 8px;
+        width: 25px;
+        height: 25px;
+        position: absolute;
+        top: -10px;
+        right: -10px;
+        background-image: url('../../img/button.png');
+        background-size: 100% 100%;/*按比例缩放*/
+        cursor: pointer;
+        img{
+          width: 25px;
+          height: 25px;
+        }
+        .tips {
+          width:50px;
+          height:30px;
+          line-height: 30px;
+          font-size: 16px;
+          font-weight:bold;
+          color:#fff;
+          background: #5B5B5B;
+          border-radius: 5px;
+          position: absolute;
+          top:-40px;
+          left:-12px;
+          text-align: center;
+
+          &:after {
+            content:'';
+            display: block;
+            width:0;
+            height:0;
+            border: 5px solid transparent;
+            border-top-color:#5B5B5B;
+            position: absolute;
+            bottom:-10px;
+            left:50%;
+            margin-left:-5px;
+          }
+        }
+      }
+    }
+    .num:nth-of-type(1) {
+      position: absolute;
+      left:0;
+      top:15px;
+      color:#333333;
+      font-size: 16px;
+    }
+    .num:nth-of-type(2) {
+      position: absolute;
+      right:0px;
+      top:15px;
+      color:#333333;
+      font-size: 16px;
+    }
+  }
+}

@@ -1,0 +1,57 @@
+.layout-container {
+  display: flex;
+  height: 100%;
+  .sidebar{
+    width: 310px;
+    height: 100%;
+    overflow-y: inherit;
+    background: #37332F;
+    .header{
+      width: 310px;
+      padding: 0 15px;
+      margin-top: 10px;
+      height: 28px;
+      font-size: 14px;
+      color: #FFFFFF;
+      border-bottom: #FFFFFF 1px solid;
+    }
+  }
+  .code-container{
+    background: #161616;
+    height: 100%;
+    flex: auto;
+    display: flex;
+    flex-direction: column;
+    .code-header{
+      height: 38px;
+      line-height: 38px;
+      font-size: 14px;
+      color: #FFFFFF;
+      border-bottom: #FFFFFF 1px solid;
+    }
+    .code-main{
+      flex: auto;
+    }
+  }
+  .black-wrap{
+    height: 100%;
+    position: fixed;
+    top:58px;
+    left:0;
+    width:100%;
+    height:100%;
+    background:rgba(0,0,0,.3);
+    z-index:1000;
+  }
+  // .ant-layout-has-sider {
+  //   height:100%;
+  // }
+  // .nodata-page{
+  //   width: 100%;
+  //   box-sizing: border-box;
+  //   position: fixed;
+  //   top: 45px;
+  //   height: 100%;
+  //   z-index: 2;
+  // }
+}

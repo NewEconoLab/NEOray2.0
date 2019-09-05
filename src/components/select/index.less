@@ -1,0 +1,162 @@
+.select-wrapper{
+    position: relative;
+    text-align: left;
+    color: #333;
+    .select-type{
+        display: inline-block;
+        margin-right: 15px;
+        line-height: 30px;
+        vertical-align: middle;
+    }
+    .selected-text{
+        display: inline-block;
+        vertical-align: middle;
+        width: 100%;
+        //   min-width: 120px;
+        height: 30px;
+        line-height: 30px;
+        background: #545454;
+        box-shadow: inset 0 1px 1px 0 #828282;
+        border-radius: 3px;
+        box-sizing: border-box;
+        padding:0 25px 0 15px;
+        color: #fff;
+        font-size: 14px;
+        cursor: pointer;
+        position: relative;
+        .triangle{
+            position: absolute;
+            top: 0px;
+            right: 0px;
+            background: #1267CB;
+            box-shadow: inset 0 1px 1px 0 rgba(59,139,234,0.50);
+            width: 20px;
+            height: 30px;
+            border-radius: 0px 3px 3px 0px;
+            img{
+                width: 10px;
+                height: 14px;
+                margin: 8px 5px;
+            }
+        }
+        span{
+            margin-right: 10px;
+            img{
+                width: 16px;
+                height: 16px;
+                margin: 6px auto;
+            }
+        }
+        input{            
+            background: none;
+            outline: none;
+            border: none;
+            height: 30px;
+            width: 245px;
+        }
+    }
+    .select-box{
+        width: 100%;
+        //   min-width: 118px;
+        overflow: hidden;
+        box-sizing: border-box;
+        position: absolute;
+        top:31px;
+        left:0;
+        z-index: 2;
+        background: #464544;
+        border: 1px solid #555555;
+        border-radius: 3px;
+        &.disNone {
+            display: none;
+        }
+        .ul{
+            .li{
+                height: 28px;
+                line-height: 28px;
+                border-bottom: 1px solid #555555;;
+                display: block;
+                font-size: 14px;
+                color: #FFFFFF;
+                padding:3px 0px;
+                .box-icon{
+                    float: left;
+                    margin: auto 10px;
+                    border-radius:5px;
+                }
+                .box-text{
+                    display: block;
+                    padding: 0px 15px;
+                    &:hover{
+                        cursor: pointer;
+                        background:#3179CE;
+                    }
+                }
+                &:last-child{
+                    border-bottom: none;
+                }
+            }
+        }
+    }
+    &.big-box{
+        .selected-text{
+            width: 190px;
+            height: 50px;
+            line-height: 50px;
+            padding: 0px 25px 0 15px;
+            span{
+                img{
+                     margin: 16px auto;
+                }
+                &.triangle{
+                    top: 20px;
+                }
+            }
+        }
+    }
+    &.long-box{
+        .selected-text{
+            width: 700px;
+            height: 50px;
+            line-height: 50px;
+            padding: 0px 25px 0 15px;
+            span{
+                img{
+                     margin: 16px auto;
+                }
+                &.triangle{
+                    top: 20px;
+                }
+            }
+        }
+        .select-box{
+            width: 700px;
+            overflow: hidden;
+            box-sizing: border-box;
+            position: absolute;
+            top: 50px;
+            left: 0;
+            z-index: 2;
+            background: #fff;
+            border: 1px solid #E5E5E5;
+            border-radius: 0 0 3px 3px;
+            .ul{                
+                .li{                
+                    height: 50px;
+                    line-height: 50px;
+                    padding: 5px 0px;
+                    border-bottom: 1px solid #E5E5E5;
+                    display: block;
+                    .box-icon{
+                        img{                            
+                            width: 16px;
+                            height: 16px;
+                            margin: 17px auto;
+                            border-radius: 50%;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

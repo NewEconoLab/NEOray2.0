@@ -1,0 +1,47 @@
+.menubar-wrap{
+    height: 100%;
+    .menubar-box{
+        height: 100%;
+        width: 50px;
+        background: #626262;
+        position: relative;
+        .menubar-log{
+            height: 38px;
+            line-height: 38px;
+            border-bottom: 1px #E5E5E5 solid;
+            font-size: 12px;
+            text-align: center;
+            color: #E5E5E5;
+            img{
+                margin: 15px auto;
+                height: 8px;
+                text-align: center;
+            }
+        }
+        .menubar-content{
+            ul{
+                li{
+                    height: 50px;
+                    width: 50px;
+                    img{
+                        height: 30px;
+                        width: 30px;
+                        margin: 10px;
+                    }
+                    &.active{
+                        background: #37332F;
+                    }
+                }
+            }
+        }
+    }
+    .language-toggle{
+        position: absolute;
+        bottom: 165px;
+        text-align: center;
+        width: 100%;
+        img{
+            cursor: pointer;
+        }
+    }
+}

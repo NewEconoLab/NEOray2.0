@@ -1,0 +1,100 @@
+.tree-select{
+    padding-top: 5px;
+    .tree-select-title{
+        display: inline-block;
+        font-size: 16px;
+        color: #E5E5E5;
+        position: relative;
+        // margin-left: 15px;
+        margin: 10px;
+        margin-left: 15px;
+        &:hover{
+            cursor: pointer;
+        }
+        .triangle{
+            width: 0;
+            height: 0;
+            border: 6px solid transparent;
+            border-top: 8px solid #E5E5E5;
+            border-radius: 2px;
+            position: absolute;
+            margin-right: 10px;
+            top: 5px;
+        }
+        .triangle-reverse{
+            width: 0;
+            height: 0;
+            border: 6px solid transparent;
+            border-left: 8px solid #E5E5E5;
+            border-radius: 2px;
+            position: absolute;
+            margin-right: 10px;
+            left: 5px;
+            top: 3px;
+        }
+        .title-text{
+            margin-left: 20px;
+        }
+    }
+    .tree-select-box{
+        .select-value{
+            padding-left: 20px;
+            font-size: 14px;
+            color: #FFFFFF;
+            line-height: 26px;
+            height: 26px;
+            &:hover{
+                background: #1267CB;
+                cursor: pointer;
+            }
+        }
+    }
+}
+.header-box{
+    display: flex;
+    .title-box{
+        flex: auto;
+        font-size: 14px;
+        color: #FFFFFF;
+    }
+    .button-box{
+        
+        float: right;
+        img{
+            margin-left: 15px;
+            height: 20px;
+            width: 20px;
+            cursor: pointer;
+        }
+        .btn-icon{
+            display: inline-block;
+            position: relative; 
+            width: 20px;
+            height: 20px;
+            img{
+                margin-left: 0;
+            }
+            input{                
+                position: absolute;
+                left: 0px;
+                top: 0px;
+                opacity: 0;
+                z-index: 2;
+                width: 20px;
+                height: 20px;
+                cursor: pointer;
+            }
+            cursor: pointer;
+        }
+    }
+}
+.children-box{
+    margin:auto 20px;
+    .input-title{
+        text-align: left;
+        font-size: 14px;
+        color: #FFFFFF;
+        margin-top: 30px;
+        margin-bottom: 20px;
+    }
+}

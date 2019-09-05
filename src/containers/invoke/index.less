@@ -1,0 +1,64 @@
+.invoke-box{
+    // height: 100%;
+    height: 95%;
+    width: 310px;
+    overflow: auto;
+    padding: 20px 15px;
+    color: #FFFFFF;
+    .invoke-title{
+        font-size: 14px;
+        margin-bottom: 15px;
+    }
+    .invoke-arg{
+        margin-bottom: 15px;
+        .arg-title{
+            margin-bottom: 5px;
+            font-size: 12px;
+            color: #808080;
+        }
+        .arg-type{
+            margin-bottom: 5px;
+        }
+        .arg-value{
+            // smjbwywtfsmgaaa
+            &.type-array{
+                // width: 100%;
+                border: 1px solid #767676;
+                box-shadow: inset 0 -1px 2px 0 rgba(130,130,130,0.50);
+                border-radius: 3px;
+                padding: 10px;
+                .invoke-button{
+                    margin-top: 20px;
+                    margin-bottom: 0px;
+                }
+            }
+        }
+    }
+    .invoke-button{
+        margin-bottom: 20px;
+        display: flex;
+        >div{
+            flex: auto;
+        }
+        .button-right{
+            margin-left: 40px;
+        }
+    }
+    .invoke-json{
+        height: 200px;
+        width: 280px;
+        background: #545454;
+        box-shadow: inset 0 -1px 2px 0 rgba(130,130,130,0.50);
+        border-radius: 3px;
+        margin-bottom: 10px;
+        textarea{
+            color: #fff;
+            height: 100%;
+            width:100%;
+            background: #545454;
+            border: 0px;
+            border-radius: 3px;
+            resize:none; 
+        }
+    }
+}
