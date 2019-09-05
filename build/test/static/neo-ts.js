@@ -1,13 +1,643 @@
 var __extends = (this && this.__extends) || (function () {
-    var extendStatics = Object.setPrototypeOf ||
-        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    }
     return function (d, b) {
         extendStatics(d, b);
         function __() { this.constructor = d; }
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     };
 })();
+var nid;
+(function (nid) {
+    var BitTreeDecoder = (function () {
+        function BitTreeDecoder(numBits) {
+            this.numBits = numBits;
+            this.probs = new Uint16Array(1 << this.numBits);
+        }
+        BitTreeDecoder.prototype.init = function () {
+            nid.LZMA.INIT_PROBS(this.probs);
+        };
+        BitTreeDecoder.prototype.decode = function (rc) {
+            var m = 1;
+            for (var i = 0; i < this.numBits; i++)
+                m = (m << 1) + rc.decodeBit(this.probs, m);
+            return m - (1 << this.numBits);
+        };
+        BitTreeDecoder.prototype.reverseDecode = function (rc) {
+            return nid.LZMA.BitTreeReverseDecode(this.probs, this.numBits, rc);
+        };
+        BitTreeDecoder.constructArray = function (numBits, len) {
+            var vec = [];
+            for (var i = 0; i < len; i++) {
+                vec[i] = new BitTreeDecoder(numBits);
+            }
+            return vec;
+        };
+        return BitTreeDecoder;
+    }());
+    nid.BitTreeDecoder = BitTreeDecoder;
+})(nid || (nid = {}));
+var nid;
+(function (nid) {
+    var LenDecoder = (function () {
+        function LenDecoder() {
+            this.lowCoder = nid.BitTreeDecoder.constructArray(3, 1 << nid.LZMA.kNumPosBitsMax);
+            this.midCoder = nid.BitTreeDecoder.constructArray(3, 1 << nid.LZMA.kNumPosBitsMax);
+            this.highCoder = new nid.BitTreeDecoder(8);
+        }
+        LenDecoder.prototype.init = function () {
+            this.choice = [nid.LZMA.PROB_INIT_VAL, nid.LZMA.PROB_INIT_VAL];
+            this.highCoder.init();
+            for (var i = 0; i < (1 << nid.LZMA.kNumPosBitsMax); i++) {
+                this.lowCoder[i].init();
+                this.midCoder[i].init();
+            }
+        };
+        LenDecoder.prototype.decode = function (rc, posState) {
+            if (rc.decodeBit(this.choice, 0) == 0) {
+                return this.lowCoder[posState].decode(rc);
+            }
+            if (rc.decodeBit(this.choice, 1) == 0) {
+                return 8 + this.midCoder[posState].decode(rc);
+            }
+            return 16 + this.highCoder.decode(rc);
+        };
+        return LenDecoder;
+    }());
+    nid.LenDecoder = LenDecoder;
+})(nid || (nid = {}));
+var nid;
+(function (nid) {
+    "use strict";
+    var LZMA = (function () {
+        function LZMA() {
+            this.decoder = new nid.LzmaDecoder();
+        }
+        LZMA.INIT_PROBS = function (p) {
+            for (var i = 0; i < p.length; i++) {
+                p[i] = this.PROB_INIT_VAL;
+            }
+        };
+        LZMA.BitTreeReverseDecode = function (probs, numBits, rc, offset) {
+            if (offset === void 0) { offset = 0; }
+            var m = 1;
+            var symbol = 0;
+            for (var i = 0; i < numBits; i++) {
+                var bit = rc.decodeBit(probs, offset + m);
+                m <<= 1;
+                m += bit;
+                symbol |= (bit << i);
+            }
+            return symbol;
+        };
+        LZMA.prototype.decode = function (data) {
+            this.data = data;
+            var header = new Uint8Array(13);
+            var i;
+            for (i = 0; i < 13; i++) {
+                header[i] = data[i];
+            }
+            this.decoder.decodeProperties(header);
+            var unpackSize = 0;
+            var unpackSizeDefined = true;
+            for (i = 0; i < 4; i++) {
+                var b = header[5 + i];
+                unpackSize |= b << (8 * i);
+            }
+            var packSize = 0;
+            for (i = 0; i < 4; i++) {
+                var b = header[9 + i];
+                packSize |= b << (8 * i);
+            }
+            this.decoder.markerIsMandatory = !unpackSizeDefined;
+            this.decoder.rangeDec.inStream = data;
+            this.decoder.create();
+            var res = this.decoder.decode(unpackSizeDefined, unpackSize);
+            if (res == LZMA.LZMA_RES_ERROR) {
+                throw "LZMA decoding error";
+            }
+            else if (res == LZMA.LZMA_RES_FINISHED_WITHOUT_MARKER) {
+            }
+            else if (res == LZMA.LZMA_RES_FINISHED_WITH_MARKER) {
+                if (unpackSizeDefined) {
+                    if (this.decoder.outWindow.out_pos != unpackSize) {
+                        throw "Finished with end marker before than specified size";
+                    }
+                }
+            }
+            else {
+                throw "Internal Error";
+            }
+            if (this.decoder.rangeDec.corrupted) {
+                console.log("Warning: LZMA stream is corrupted");
+            }
+            return this.decoder.outWindow.outStream;
+        };
+        LZMA.LZMA_DIC_MIN = (1 << 12);
+        LZMA.LZMA_RES_ERROR = 0;
+        LZMA.LZMA_RES_FINISHED_WITH_MARKER = 1;
+        LZMA.LZMA_RES_FINISHED_WITHOUT_MARKER = 2;
+        LZMA.kNumBitModelTotalBits = 11;
+        LZMA.kNumMoveBits = 5;
+        LZMA.PROB_INIT_VAL = ((1 << LZMA.kNumBitModelTotalBits) / 2);
+        LZMA.kNumPosBitsMax = 4;
+        LZMA.kNumStates = 12;
+        LZMA.kNumLenToPosStates = 4;
+        LZMA.kNumAlignBits = 4;
+        LZMA.kStartPosModelIndex = 4;
+        LZMA.kEndPosModelIndex = 14;
+        LZMA.kNumFullDistances = (1 << (LZMA.kEndPosModelIndex >>> 1));
+        LZMA.kMatchMinLen = 2;
+        return LZMA;
+    }());
+    nid.LZMA = LZMA;
+})(nid || (nid = {}));
+var nid;
+(function (nid) {
+    var RangeDecoder = (function () {
+        function RangeDecoder() {
+            this.rangeI = 0;
+            this.codeI = 1;
+            this.loc1 = 2;
+            this.loc2 = 3;
+            this.in_pos = 13;
+        }
+        RangeDecoder.prototype.isFinishedOK = function () {
+            return this.U32[this.codeI] == 0;
+        };
+        RangeDecoder.prototype.init = function () {
+            this.U32 = new Uint32Array(4);
+            this.U16 = new Uint16Array(4);
+            this.corrupted = false;
+            if (this.inStream[this.in_pos++] != 0) {
+                this.corrupted = true;
+            }
+            this.U32[this.rangeI] = 0xFFFFFFFF;
+            this.U32[this.codeI] = 0;
+            for (var i = 0; i < 4; i++) {
+                this.U32[this.codeI] = (this.U32[this.codeI] << 8) | this.inStream[this.in_pos++];
+            }
+            if (this.U32[this.codeI] == this.U32[this.rangeI]) {
+                this.corrupted = true;
+            }
+        };
+        RangeDecoder.prototype.normalize = function () {
+            if (this.U32[this.rangeI] < RangeDecoder.kTopValue) {
+                this.U32[this.rangeI] <<= 8;
+                this.U32[this.codeI] = (this.U32[this.codeI] << 8) | this.inStream[this.in_pos++];
+            }
+        };
+        RangeDecoder.prototype.decodeDirectBits = function (numBits) {
+            this.U32[this.loc1] = 0;
+            do {
+                this.U32[this.rangeI] >>>= 1;
+                this.U32[this.codeI] -= this.U32[this.rangeI];
+                this.U32[this.loc2] = 0 - (this.U32[this.codeI] >>> 31);
+                this.U32[this.codeI] += this.U32[this.rangeI] & this.U32[this.loc2];
+                if (this.U32[this.codeI] == this.U32[this.rangeI]) {
+                    this.corrupted = true;
+                }
+                this.normalize();
+                this.U32[this.loc1] <<= 1;
+                this.U32[this.loc1] += this.U32[this.loc2] + 1;
+            } while (--numBits);
+            return this.U32[this.loc1];
+        };
+        RangeDecoder.prototype.decodeBit = function (prob, index) {
+            this.U16[0] = prob[index];
+            this.U32[2] = (this.U32[0] >>> 11) * this.U16[0];
+            if (this.U32[1] < this.U32[2]) {
+                this.U16[0] += ((1 << 11) - this.U16[0]) >>> 5;
+                this.U32[0] = this.U32[2];
+                this.U16[1] = 0;
+            }
+            else {
+                this.U16[0] -= this.U16[0] >>> 5;
+                this.U32[1] -= this.U32[2];
+                this.U32[0] -= this.U32[2];
+                this.U16[1] = 1;
+            }
+            prob[index] = this.U16[0];
+            if (this.U32[0] < 16777216) {
+                this.U32[0] <<= 8;
+                this.U32[1] = (this.U32[1] << 8) | this.inStream[this.in_pos++];
+            }
+            return this.U16[1];
+        };
+        RangeDecoder.kTopValue = (1 << 24);
+        return RangeDecoder;
+    }());
+    nid.RangeDecoder = RangeDecoder;
+})(nid || (nid = {}));
+var nid;
+(function (nid) {
+    var OutWindow = (function () {
+        function OutWindow() {
+            this.out_pos = 0;
+        }
+        OutWindow.prototype.create = function (dictSize) {
+            this.buf = new Uint8Array(dictSize);
+            this.pos = 0;
+            this.size = dictSize;
+            this.isFull = false;
+            this.totalPos = 0;
+        };
+        OutWindow.prototype.putByte = function (b) {
+            this.totalPos++;
+            this.buf[this.pos++] = b;
+            if (this.pos == this.size) {
+                this.pos = 0;
+                this.isFull = true;
+            }
+            this.outStream[this.out_pos++] = b;
+        };
+        OutWindow.prototype.getByte = function (dist) {
+            return this.buf[dist <= this.pos ? this.pos - dist : this.size - dist + this.pos];
+        };
+        OutWindow.prototype.copyMatch = function (dist, len) {
+            for (; len > 0; len--) {
+                this.putByte(this.getByte(dist));
+            }
+        };
+        OutWindow.prototype.checkDistance = function (dist) {
+            return dist <= this.pos || this.isFull;
+        };
+        OutWindow.prototype.isEmpty = function () {
+            return this.pos == 0 && !this.isFull;
+        };
+        return OutWindow;
+    }());
+    nid.OutWindow = OutWindow;
+})(nid || (nid = {}));
+var nid;
+(function (nid) {
+    var LzmaDecoder = (function () {
+        function LzmaDecoder() {
+            this.posSlotDecoder = nid.BitTreeDecoder.constructArray(6, nid.LZMA.kNumLenToPosStates);
+            this.alignDecoder = new nid.BitTreeDecoder(nid.LZMA.kNumAlignBits);
+            this.posDecoders = new Uint16Array(1 + nid.LZMA.kNumFullDistances - nid.LZMA.kEndPosModelIndex);
+            this.isMatch = new Uint16Array(nid.LZMA.kNumStates << nid.LZMA.kNumPosBitsMax);
+            this.isRep = new Uint16Array(nid.LZMA.kNumStates);
+            this.isRepG0 = new Uint16Array(nid.LZMA.kNumStates);
+            this.isRepG1 = new Uint16Array(nid.LZMA.kNumStates);
+            this.isRepG2 = new Uint16Array(nid.LZMA.kNumStates);
+            this.isRep0Long = new Uint16Array(nid.LZMA.kNumStates << nid.LZMA.kNumPosBitsMax);
+            this.lenDecoder = new nid.LenDecoder();
+            this.repLenDecoder = new nid.LenDecoder();
+            this.rangeDec = new nid.RangeDecoder();
+            this.outWindow = new nid.OutWindow();
+        }
+        LzmaDecoder.prototype.init = function () {
+            this.loc1 = nid.utils.MEMORY.getUint32() | 0;
+            this.loc2 = nid.utils.MEMORY.getUint32() | 0;
+            this.matchBitI = nid.utils.MEMORY.getUint16() | 0;
+            this.matchByteI = nid.utils.MEMORY.getUint16() | 0;
+            this.bitI = nid.utils.MEMORY.getUint16() | 0;
+            this.symbolI = nid.utils.MEMORY.getUint16() | 0;
+            this.prevByteI = nid.utils.MEMORY.getUint16() | 0;
+            this.litStateI = nid.utils.MEMORY.getUint16() | 0;
+            this.initLiterals();
+            this.initDist();
+            nid.LZMA.INIT_PROBS(this.isMatch);
+            nid.LZMA.INIT_PROBS(this.isRep);
+            nid.LZMA.INIT_PROBS(this.isRepG0);
+            nid.LZMA.INIT_PROBS(this.isRepG1);
+            nid.LZMA.INIT_PROBS(this.isRepG2);
+            nid.LZMA.INIT_PROBS(this.isRep0Long);
+            this.lenDecoder.init();
+            this.repLenDecoder.init();
+        };
+        LzmaDecoder.prototype.create = function () {
+            this.outWindow.create(this.dictSize);
+            this.createLiterals();
+        };
+        LzmaDecoder.prototype.createLiterals = function () {
+            this.litProbs = new Uint16Array(0x300 << (this.lc + this.lp));
+        };
+        LzmaDecoder.prototype.initLiterals = function () {
+            var num = 0x300 << (this.lc + this.lp);
+            for (var i = 0; i < num; i++) {
+                this.litProbs[i] = nid.LZMA.PROB_INIT_VAL;
+            }
+        };
+        LzmaDecoder.prototype.decodeLiteral = function (state, rep0) {
+            nid.utils.MEMORY.u16[this.prevByteI] = 0;
+            if (!this.outWindow.isEmpty())
+                nid.utils.MEMORY.u16[this.prevByteI] = this.outWindow.getByte(1);
+            nid.utils.MEMORY.u16[this.symbolI] = 1;
+            nid.utils.MEMORY.u16[this.litStateI] = ((this.outWindow.totalPos & ((1 << this.lp) - 1)) << this.lc) + (nid.utils.MEMORY.u16[this.prevByteI] >>> (8 - this.lc));
+            var probsOffset = (0x300 * nid.utils.MEMORY.u16[this.litStateI]) | 0;
+            if (state >= 7) {
+                nid.utils.MEMORY.u16[this.matchByteI] = this.outWindow.getByte(rep0 + 1);
+                do {
+                    nid.utils.MEMORY.u16[this.matchBitI] = (nid.utils.MEMORY.u16[this.matchByteI] >>> 7) & 1;
+                    nid.utils.MEMORY.u16[this.matchByteI] <<= 1;
+                    nid.utils.MEMORY.u16[this.bitI] = this.rangeDec.decodeBit(this.litProbs, probsOffset + ((1 + nid.utils.MEMORY.u16[this.matchBitI]) << 8) + nid.utils.MEMORY.u16[this.symbolI]);
+                    nid.utils.MEMORY.u16[this.symbolI] = (nid.utils.MEMORY.u16[this.symbolI] << 1) | nid.utils.MEMORY.u16[this.bitI];
+                    if (nid.utils.MEMORY.u16[this.matchBitI] != nid.utils.MEMORY.u16[this.bitI])
+                        break;
+                } while (nid.utils.MEMORY.u16[this.symbolI] < 0x100);
+            }
+            while (nid.utils.MEMORY.u16[this.symbolI] < 0x100) {
+                nid.utils.MEMORY.u16[this.symbolI] = (nid.utils.MEMORY.u16[this.symbolI] << 1) | this.rangeDec.decodeBit(this.litProbs, probsOffset + nid.utils.MEMORY.u16[this.symbolI]);
+            }
+            this.outWindow.putByte(nid.utils.MEMORY.u16[this.symbolI] - 0x100);
+        };
+        LzmaDecoder.prototype.decodeDistance = function (len) {
+            var lenState = len;
+            if (lenState > nid.LZMA.kNumLenToPosStates - 1)
+                lenState = nid.LZMA.kNumLenToPosStates - 1;
+            var posSlot = this.posSlotDecoder[lenState].decode(this.rangeDec);
+            if (posSlot < 4)
+                return posSlot;
+            var numDirectBits = ((posSlot >>> 1) - 1);
+            nid.utils.MEMORY.u32[this.loc1] = ((2 | (posSlot & 1)) << numDirectBits);
+            if (posSlot < nid.LZMA.kEndPosModelIndex) {
+                nid.utils.MEMORY.u32[this.loc1] += nid.LZMA.BitTreeReverseDecode(this.posDecoders, numDirectBits, this.rangeDec, nid.utils.MEMORY.u32[this.loc1] - posSlot);
+            }
+            else {
+                nid.utils.MEMORY.u32[this.loc1] += this.rangeDec.decodeDirectBits(numDirectBits - nid.LZMA.kNumAlignBits) << nid.LZMA.kNumAlignBits;
+                nid.utils.MEMORY.u32[this.loc1] += this.alignDecoder.reverseDecode(this.rangeDec);
+            }
+            return nid.utils.MEMORY.u32[this.loc1];
+        };
+        LzmaDecoder.prototype.initDist = function () {
+            for (var i = 0; i < nid.LZMA.kNumLenToPosStates; i++) {
+                this.posSlotDecoder[i].init();
+            }
+            this.alignDecoder.init();
+            nid.LZMA.INIT_PROBS(this.posDecoders);
+        };
+        LzmaDecoder.prototype.decodeProperties = function (properties) {
+            var prop = new Uint8Array(4);
+            prop[0] = properties[0];
+            if (prop[0] >= (9 * 5 * 5)) {
+                throw "Incorrect LZMA properties";
+            }
+            prop[1] = prop[0] % 9;
+            prop[0] /= 9;
+            prop[2] = prop[0] / 5;
+            prop[3] = prop[0] % 5;
+            this.lc = prop[1];
+            this.pb = prop[2];
+            this.lp = prop[3];
+            this.dictSizeInProperties = 0;
+            for (var i = 0; i < 4; i++) {
+                this.dictSizeInProperties |= properties[i + 1] << (8 * i);
+            }
+            this.dictSize = this.dictSizeInProperties;
+            if (this.dictSize < nid.LZMA.LZMA_DIC_MIN) {
+                this.dictSize = nid.LZMA.LZMA_DIC_MIN;
+            }
+        };
+        LzmaDecoder.prototype.updateState_Literal = function (state) {
+            if (state < 4)
+                return 0;
+            else if (state < 10)
+                return state - 3;
+            else
+                return state - 6;
+        };
+        LzmaDecoder.prototype.updateState_ShortRep = function (state) { return state < 7 ? 9 : 11; };
+        LzmaDecoder.prototype.updateState_Rep = function (state) { return state < 7 ? 8 : 11; };
+        LzmaDecoder.prototype.updateState_Match = function (state) { return state < 7 ? 7 : 10; };
+        LzmaDecoder.prototype.decode = function (unpackSizeDefined, unpackSize) {
+            this.init();
+            this.rangeDec.init();
+            if (unpackSizeDefined) {
+                this.outWindow.outStream = new Uint8Array(new ArrayBuffer(unpackSize));
+            }
+            var rep0 = 0, rep1 = 0, rep2 = 0, rep3 = 0;
+            var state = 0;
+            for (; ;) {
+                if (unpackSizeDefined && unpackSize == 0 && !this.markerIsMandatory) {
+                    if (this.rangeDec.isFinishedOK()) {
+                        return nid.LZMA.LZMA_RES_FINISHED_WITHOUT_MARKER;
+                    }
+                }
+                var posState = this.outWindow.totalPos & ((1 << this.pb) - 1);
+                if (this.rangeDec.decodeBit(this.isMatch, (state << nid.LZMA.kNumPosBitsMax) + posState) == 0) {
+                    if (unpackSizeDefined && unpackSize == 0) {
+                        return nid.LZMA.LZMA_RES_ERROR;
+                    }
+                    this.decodeLiteral(state, rep0);
+                    state = this.updateState_Literal(state);
+                    unpackSize--;
+                    continue;
+                }
+                var len;
+                if (this.rangeDec.decodeBit(this.isRep, state) != 0) {
+                    if (unpackSizeDefined && unpackSize == 0) {
+                        return nid.LZMA.LZMA_RES_ERROR;
+                    }
+                    if (this.outWindow.isEmpty()) {
+                        return nid.LZMA.LZMA_RES_ERROR;
+                    }
+                    if (this.rangeDec.decodeBit(this.isRepG0, state) == 0) {
+                        if (this.rangeDec.decodeBit(this.isRep0Long, (state << nid.LZMA.kNumPosBitsMax) + posState) == 0) {
+                            state = this.updateState_ShortRep(state);
+                            this.outWindow.putByte(this.outWindow.getByte(rep0 + 1));
+                            unpackSize--;
+                            continue;
+                        }
+                    }
+                    else {
+                        var dist;
+                        if (this.rangeDec.decodeBit(this.isRepG1, state) == 0) {
+                            dist = rep1;
+                        }
+                        else {
+                            if (this.rangeDec.decodeBit(this.isRepG2, state) == 0) {
+                                dist = rep2;
+                            }
+                            else {
+                                dist = rep3;
+                                rep3 = rep2;
+                            }
+                            rep2 = rep1;
+                        }
+                        rep1 = rep0;
+                        rep0 = dist;
+                    }
+                    len = this.repLenDecoder.decode(this.rangeDec, posState);
+                    state = this.updateState_Rep(state);
+                }
+                else {
+                    rep3 = rep2;
+                    rep2 = rep1;
+                    rep1 = rep0;
+                    len = this.lenDecoder.decode(this.rangeDec, posState);
+                    state = this.updateState_Match(state);
+                    rep0 = this.decodeDistance(len);
+                    if (rep0 == 0xFFFFFFFF) {
+                        return this.rangeDec.isFinishedOK() ?
+                            nid.LZMA.LZMA_RES_FINISHED_WITH_MARKER :
+                            nid.LZMA.LZMA_RES_ERROR;
+                    }
+                    if (unpackSizeDefined && unpackSize == 0) {
+                        return nid.LZMA.LZMA_RES_ERROR;
+                    }
+                    if (rep0 >= this.dictSize || !this.outWindow.checkDistance(rep0)) {
+                        return nid.LZMA.LZMA_RES_ERROR;
+                    }
+                }
+                len += nid.LZMA.kMatchMinLen;
+                var isError = false;
+                if (unpackSizeDefined && unpackSize < len) {
+                    len = unpackSize;
+                    isError = true;
+                }
+                this.outWindow.copyMatch(rep0 + 1, len);
+                unpackSize -= len;
+                if (isError) {
+                    return nid.LZMA.LZMA_RES_ERROR;
+                }
+            }
+        };
+        return LzmaDecoder;
+    }());
+    nid.LzmaDecoder = LzmaDecoder;
+})(nid || (nid = {}));
+var nid;
+(function (nid) {
+    var utils;
+    (function (utils) {
+        var LZMA = nid.LZMA;
+        var LZMAHelper = (function () {
+            function LZMAHelper() {
+            }
+            LZMAHelper.init = function () {
+                var command = 0;
+                LZMAHelper.decoderAsync.onmessage = function (e) {
+                    if (command == 0) {
+                        command = e.data;
+                    }
+                    else if (command == LZMAHelper.ENCODE) {
+                        command = 0;
+                    }
+                    else if (command == LZMAHelper.DECODE) {
+                        command = 0;
+                        LZMAHelper.callback(e.data);
+                        LZMAHelper.callback = null;
+                    }
+                };
+            };
+            LZMAHelper.encode = function (data) {
+                return null;
+            };
+            LZMAHelper.decode = function (data) {
+                return LZMAHelper.decoder.decode(new Uint8Array(data)).buffer;
+            };
+            LZMAHelper.encodeAsync = function (data, _callback) {
+            };
+            LZMAHelper.decodeAsync = function (data, _callback) {
+                if (LZMAHelper.callback == null) {
+                    LZMAHelper.callback = _callback;
+                    LZMAHelper.decoderAsync.postMessage(LZMAHelper.DECODE);
+                    LZMAHelper.decoderAsync.postMessage(data, [data]);
+                }
+                else {
+                    console.log('Warning! Another LZMA decoding is running...');
+                }
+            };
+            LZMAHelper.decoder = new LZMA();
+            LZMAHelper.decoderAsync = new Worker('static/js/LZMAWorker.min.js');
+            LZMAHelper.ENCODE = 1;
+            LZMAHelper.DECODE = 2;
+            return LZMAHelper;
+        }());
+        utils.LZMAHelper = LZMAHelper;
+    })(utils = nid.utils || (nid.utils = {}));
+})(nid || (nid = {}));
+nid.utils.LZMAHelper.init();
+var nid;
+(function (nid) {
+    "use strict";
+    var LZMAWorker = (function () {
+        function LZMAWorker() {
+            this.command = null;
+            var _this = this;
+            this.decoder = new nid.LZMA();
+            addEventListener('message', function (e) {
+                if (_this.command == null) {
+                    _this.command = e.data;
+                }
+                else if (_this.command['job'] == 1) {
+                    _this.command = null;
+                }
+                else if (_this.command['job'] == 2) {
+                    _this.decode(e.data);
+                }
+            }, false);
+        }
+        LZMAWorker.prototype.decode = function (data) {
+            this.time = Date.now();
+            var result = this.decoder.decode(new Uint8Array(data));
+            this.command['time'] = Date.now() - this.time;
+            postMessage(this.command);
+            postMessage(result.buffer, [result.buffer]);
+        };
+        LZMAWorker.ENCODE = 1;
+        LZMAWorker.DECODE = 2;
+        return LZMAWorker;
+    }());
+    nid.LZMAWorker = LZMAWorker;
+})(nid || (nid = {}));
+new nid.LZMAWorker();
+var nid;
+(function (nid) {
+    var utils;
+    (function (utils) {
+        var MEMORY = (function () {
+            function MEMORY() {
+            }
+            MEMORY.reset = function () {
+                MEMORY.u8Index = 0;
+                MEMORY.u16Index = 0;
+                MEMORY.u32Index = 0;
+                MEMORY.u8 = null;
+                MEMORY.u16 = null;
+                MEMORY.u32 = null;
+            };
+            MEMORY.allocateUint8 = function (len) {
+                MEMORY.u8 = new Uint8Array(len);
+            };
+            MEMORY.allocateUint16 = function (len) {
+                MEMORY.u16 = new Uint16Array(len);
+            };
+            MEMORY.allocateUint32 = function (len) {
+                MEMORY.u32 = new Uint32Array(len);
+            };
+            MEMORY.getUint8 = function () {
+                if (!MEMORY.u8) {
+                    MEMORY.allocateUint8(10);
+                }
+                return MEMORY.u8Index++;
+            };
+            MEMORY.getUint16 = function () {
+                if (!MEMORY.u16) {
+                    MEMORY.allocateUint16(24);
+                }
+                return MEMORY.u16Index++;
+            };
+            MEMORY.getUint32 = function () {
+                if (!MEMORY.u32) {
+                    MEMORY.allocateUint32(10);
+                }
+                return MEMORY.u32Index++;
+            };
+            MEMORY.u8Index = 0;
+            MEMORY.u16Index = 0;
+            MEMORY.u32Index = 0;
+            return MEMORY;
+        }());
+        utils.MEMORY = MEMORY;
+    })(utils = nid.utils || (nid.utils = {}));
+})(nid || (nid = {}));
 var Neo;
 (function (Neo) {
     var UintVariable = (function () {
@@ -1227,8 +1857,8 @@ var NeoPromise = (function () {
             }
         });
     };
-    NeoPromise.prototype.catch = function (onRejected) {
-        return this.then(null, onRejected);
+    NeoPromise.prototype.catch = function (onrejected) {
+        return this.then(null, onrejected);
     };
     NeoPromise.prototype.checkState = function () {
         if (this._state != PromiseState.pending && this._callback_attached) {
@@ -1311,6 +1941,8 @@ var Neo;
             configurable: true
         });
         Uint160.parse = function (str) {
+            if (str.length == 42)
+                str = str.replace("0x", "");
             if (str.length != 40)
                 throw new RangeError();
             var x = str.hexToBytes();
@@ -1355,6 +1987,1383 @@ var Neo;
     }(Neo.UintVariable));
     Neo.Uint256 = Uint256;
 })(Neo || (Neo = {}));
+var ThinNeo;
+(function (ThinNeo) {
+    var contract = (function () {
+        function contract() {
+            this.parameters = [{ "name": "parameter0", "type": "Signature" }];
+            this.deployed = false;
+        }
+        return contract;
+    }());
+    ThinNeo.contract = contract;
+    var nep6account = (function () {
+        function nep6account() {
+        }
+        nep6account.prototype.getPrivateKey = function (scrypt, password, callback) {
+            var _this = this;
+            var cb = function (i, r) {
+                if (i == "finish") {
+                    var bytes = r;
+                    var pkey = ThinNeo.Helper.GetPublicKeyFromPrivateKey(bytes);
+                    var address = ThinNeo.Helper.GetAddressFromPublicKey(pkey);
+                    if (address == _this.address) {
+                        callback(i, r);
+                    }
+                    else {
+                        callback("error", "checkerror");
+                    }
+                }
+                else {
+                    callback(i, r);
+                }
+            };
+            ThinNeo.Helper.GetPrivateKeyFromNep2(this.nep2key, password, scrypt.N, scrypt.r, scrypt.p, cb);
+        };
+        return nep6account;
+    }());
+    ThinNeo.nep6account = nep6account;
+    var nep6ScryptParameters = (function () {
+        function nep6ScryptParameters() {
+        }
+        return nep6ScryptParameters;
+    }());
+    ThinNeo.nep6ScryptParameters = nep6ScryptParameters;
+    var nep6wallet = (function () {
+        function nep6wallet() {
+        }
+        nep6wallet.prototype.fromJsonStr = function (jsonstr) {
+            var json = JSON.parse(jsonstr);
+            this.scrypt = new nep6ScryptParameters();
+            this.scrypt.N = json.scrypt.n;
+            this.scrypt.r = json.scrypt.r;
+            this.scrypt.p = json.scrypt.p;
+            this.accounts = [];
+            for (var i = 0; i < json.accounts.length; i++) {
+                var acc = json.accounts[i];
+                var localacc = new nep6account();
+                localacc.address = acc.address;
+                localacc.nep2key = acc.key;
+                localacc.contract = acc.contract;
+                if (localacc.contract == null || localacc.contract.script == null) {
+                    localacc.nep2key = null;
+                }
+                else {
+                    var ss = localacc.contract.script.hexToBytes();
+                    if (ss.length != 35 || ss[0] != 33 || ss[34] != 172) {
+                        localacc.nep2key = null;
+                    }
+                }
+                if (acc.key == undefined)
+                    localacc.nep2key = null;
+                this.accounts.push(localacc);
+            }
+        };
+        nep6wallet.prototype.toJson = function () {
+            var obj = {};
+            obj["name"] = null;
+            obj["version"] = "1.0";
+            obj["scrypt"] = {
+                "n": this.scrypt.N,
+                "r": this.scrypt.r,
+                "p": this.scrypt.p
+            };
+            var accounts = [];
+            for (var i = 0; i < this.accounts.length; i++) {
+                var acc = this.accounts[0];
+                var jsonacc = {};
+                jsonacc["address"] = acc.address;
+                jsonacc["label"] = null;
+                jsonacc["isDefault"] = false;
+                jsonacc["lock"] = false;
+                jsonacc["key"] = acc.nep2key;
+                jsonacc["extra"] = null;
+                jsonacc["contract"] = acc.contract;
+                accounts.push(jsonacc);
+            }
+            obj["accounts"] = accounts;
+            obj["extra"] = null;
+            return obj;
+        };
+        return nep6wallet;
+    }());
+    ThinNeo.nep6wallet = nep6wallet;
+})(ThinNeo || (ThinNeo = {}));
+var ThinNeo;
+(function (ThinNeo) {
+    var Base64 = (function () {
+        function Base64() {
+        }
+        Base64.init = function () {
+            if (Base64.binited)
+                return;
+            Base64.lookup = [];
+            Base64.revLookup = [];
+            for (var i = 0, len = Base64.code.length; i < len; ++i) {
+                Base64.lookup[i] = Base64.code[i];
+                Base64.revLookup[Base64.code.charCodeAt(i)] = i;
+            }
+            Base64.revLookup['-'.charCodeAt(0)] = 62;
+            Base64.revLookup['_'.charCodeAt(0)] = 63;
+            Base64.binited = true;
+        };
+        Base64.placeHoldersCount = function (b64) {
+            var len = b64.length;
+            if (len % 4 > 0) {
+                throw new Error('Invalid string. Length must be a multiple of 4');
+            }
+            return b64[len - 2] === '=' ? 2 : b64[len - 1] === '=' ? 1 : 0;
+        };
+        Base64.byteLength = function (b64) {
+            return (b64.length * 3 / 4) - Base64.placeHoldersCount(b64);
+        };
+        Base64.toByteArray = function (b64) {
+            Base64.init();
+            var i, l, tmp, placeHolders, arr;
+            var len = b64.length;
+            placeHolders = Base64.placeHoldersCount(b64);
+            arr = new Uint8Array((len * 3 / 4) - placeHolders);
+            l = placeHolders > 0 ? len - 4 : len;
+            var L = 0;
+            for (i = 0; i < l; i += 4) {
+                tmp = (Base64.revLookup[b64.charCodeAt(i)] << 18) | (Base64.revLookup[b64.charCodeAt(i + 1)] << 12) | (Base64.revLookup[b64.charCodeAt(i + 2)] << 6) | Base64.revLookup[b64.charCodeAt(i + 3)];
+                arr[L++] = (tmp >> 16) & 0xFF;
+                arr[L++] = (tmp >> 8) & 0xFF;
+                arr[L++] = tmp & 0xFF;
+            }
+            if (placeHolders === 2) {
+                tmp = (Base64.revLookup[b64.charCodeAt(i)] << 2) | (Base64.revLookup[b64.charCodeAt(i + 1)] >> 4);
+                arr[L++] = tmp & 0xFF;
+            }
+            else if (placeHolders === 1) {
+                tmp = (Base64.revLookup[b64.charCodeAt(i)] << 10) | (Base64.revLookup[b64.charCodeAt(i + 1)] << 4) | (Base64.revLookup[b64.charCodeAt(i + 2)] >> 2);
+                arr[L++] = (tmp >> 8) & 0xFF;
+                arr[L++] = tmp & 0xFF;
+            }
+            return arr;
+        };
+        Base64.tripletToBase64 = function (num) {
+            return Base64.lookup[num >> 18 & 0x3F] + Base64.lookup[num >> 12 & 0x3F] + Base64.lookup[num >> 6 & 0x3F] + Base64.lookup[num & 0x3F];
+        };
+        Base64.encodeChunk = function (uint8, start, end) {
+            var tmp;
+            var output = [];
+            for (var i = start; i < end; i += 3) {
+                tmp = (uint8[i] << 16) + (uint8[i + 1] << 8) + (uint8[i + 2]);
+                output.push(Base64.tripletToBase64(tmp));
+            }
+            return output.join('');
+        };
+        Base64.fromByteArray = function (uint8) {
+            Base64.init();
+            var tmp;
+            var len = uint8.length;
+            var extraBytes = len % 3;
+            var output = '';
+            var parts = [];
+            var maxChunkLength = 16383;
+            for (var i = 0, len2 = len - extraBytes; i < len2; i += maxChunkLength) {
+                parts.push(Base64.encodeChunk(uint8, i, (i + maxChunkLength) > len2 ? len2 : (i + maxChunkLength)));
+            }
+            if (extraBytes === 1) {
+                tmp = uint8[len - 1];
+                output += Base64.lookup[tmp >> 2];
+                output += Base64.lookup[(tmp << 4) & 0x3F];
+                output += '==';
+            }
+            else if (extraBytes === 2) {
+                tmp = (uint8[len - 2] << 8) + (uint8[len - 1]);
+                output += Base64.lookup[tmp >> 10];
+                output += Base64.lookup[(tmp >> 4) & 0x3F];
+                output += Base64.lookup[(tmp << 2) & 0x3F];
+                output += '=';
+            }
+            parts.push(output);
+            return parts.join('');
+        };
+        Base64.lookup = [];
+        Base64.revLookup = [];
+        Base64.code = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+        Base64.binited = false;
+        return Base64;
+    }());
+    ThinNeo.Base64 = Base64;
+})(ThinNeo || (ThinNeo = {}));
+var ThinNeo;
+(function (ThinNeo) {
+    var scrypt_loaded = false;
+    var Helper = (function () {
+        function Helper() {
+        }
+        Helper.GetPrivateKeyFromWIF = function (wif) {
+            if (wif == null)
+                throw new Error("null wif");
+            var data = Neo.Cryptography.Base58.decode(wif);
+            if (data.length != 38 || data[0] != 0x80 || data[33] != 0x01)
+                throw new Error("wif length or tag is error");
+            var sum = data.subarray(data.length - 4, data.length);
+            var realdata = data.subarray(0, data.length - 4);
+            var _checksum = Neo.Cryptography.Sha256.computeHash(realdata);
+            var checksum = new Uint8Array(Neo.Cryptography.Sha256.computeHash(_checksum));
+            var sumcalc = checksum.subarray(0, 4);
+            for (var i = 0; i < 4; i++) {
+                if (sum[i] != sumcalc[i])
+                    throw new Error("the sum is not match.");
+            }
+            var privateKey = data.subarray(1, 1 + 32);
+            return privateKey;
+        };
+        Helper.GetWifFromPrivateKey = function (prikey) {
+            var data = new Uint8Array(38);
+            data[0] = 0x80;
+            data[33] = 0x01;
+            for (var i = 0; i < 32; i++) {
+                data[i + 1] = prikey[i];
+            }
+            var realdata = data.subarray(0, data.length - 4);
+            var _checksum = Neo.Cryptography.Sha256.computeHash(realdata);
+            var checksum = new Uint8Array(Neo.Cryptography.Sha256.computeHash(_checksum));
+            for (var i = 0; i < 4; i++) {
+                data[34 + i] = checksum[i];
+            }
+            var wif = Neo.Cryptography.Base58.encode(data);
+            return wif;
+        };
+        Helper.GetPublicKeyFromPrivateKey = function (privateKey) {
+            var pkey = Neo.Cryptography.ECPoint.multiply(Neo.Cryptography.ECCurve.secp256r1.G, privateKey);
+            return pkey.encodePoint(true);
+        };
+        Helper.Hash160 = function (data) {
+            var hash1 = Neo.Cryptography.Sha256.computeHash(data);
+            var hash2 = Neo.Cryptography.RIPEMD160.computeHash(hash1);
+            return new Uint8Array(hash2);
+        };
+        Helper.GetAddressCheckScriptFromPublicKey = function (publicKey) {
+            var script = new Uint8Array(publicKey.length + 2);
+            script[0] = publicKey.length;
+            for (var i = 0; i < publicKey.length; i++) {
+                script[i + 1] = publicKey[i];
+            }
+            ;
+            script[script.length - 1] = 172;
+            return script;
+        };
+        Helper.GetPublicKeyScriptHashFromPublicKey = function (publicKey) {
+            var script = Helper.GetAddressCheckScriptFromPublicKey(publicKey);
+            var scripthash = Neo.Cryptography.Sha256.computeHash(script);
+            scripthash = Neo.Cryptography.RIPEMD160.computeHash(scripthash);
+            return new Uint8Array(scripthash);
+        };
+        Helper.GetScriptHashFromScript = function (script) {
+            var scripthash = Neo.Cryptography.Sha256.computeHash(script);
+            scripthash = Neo.Cryptography.RIPEMD160.computeHash(scripthash);
+            return new Uint8Array(scripthash);
+        };
+        Helper.GetAddressFromScriptHash = function (scripthash) {
+            var script_hash;
+            if (scripthash instanceof Neo.Uint160) {
+                script_hash = new Uint8Array(scripthash.bits.buffer);
+            }
+            else {
+                script_hash = scripthash;
+            }
+            var data = new Uint8Array(script_hash.length + 1);
+            data[0] = 0x17;
+            for (var i = 0; i < script_hash.length; i++) {
+                data[i + 1] = script_hash[i];
+            }
+            var hash = Neo.Cryptography.Sha256.computeHash(data);
+            hash = Neo.Cryptography.Sha256.computeHash(hash);
+            var hashu8 = new Uint8Array(hash, 0, 4);
+            var alldata = new Uint8Array(data.length + 4);
+            for (var i = 0; i < data.length; i++) {
+                alldata[i] = data[i];
+            }
+            for (var i = 0; i < 4; i++) {
+                alldata[data.length + i] = hashu8[i];
+            }
+            return Neo.Cryptography.Base58.encode(alldata);
+        };
+        Helper.GetAddressFromPublicKey = function (publicKey) {
+            var scripthash = Helper.GetPublicKeyScriptHashFromPublicKey(publicKey);
+            return Helper.GetAddressFromScriptHash(scripthash);
+        };
+        Helper.GetPublicKeyScriptHash_FromAddress = function (address) {
+            var array = Neo.Cryptography.Base58.decode(address);
+            var salt = array.subarray(0, 1);
+            var hash = array.subarray(1, 1 + 20);
+            var check = array.subarray(21, 21 + 4);
+            var checkdata = array.subarray(0, 21);
+            var hashd = Neo.Cryptography.Sha256.computeHash(checkdata);
+            hashd = Neo.Cryptography.Sha256.computeHash(hashd);
+            var hashd = hashd.slice(0, 4);
+            var checked = new Uint8Array(hashd);
+            for (var i = 0; i < 4; i++) {
+                if (checked[i] != check[i]) {
+                    throw new Error("the sum is not match.");
+                }
+            }
+            return hash.clone();
+        };
+        Helper.Sign = function (message, privateKey) {
+            var PublicKey = Neo.Cryptography.ECPoint.multiply(Neo.Cryptography.ECCurve.secp256r1.G, privateKey);
+            var pubkey = PublicKey.encodePoint(false).subarray(1, 64);
+            var key = new Neo.Cryptography.ECDsaCryptoKey(PublicKey, privateKey);
+            var ecdsa = new Neo.Cryptography.ECDsa(key);
+            {
+                return new Uint8Array(ecdsa.sign(message));
+            }
+        };
+        Helper.VerifySignature = function (message, signature, pubkey) {
+            var PublicKey = Neo.Cryptography.ECPoint.decodePoint(pubkey, Neo.Cryptography.ECCurve.secp256r1);
+            var usepk = PublicKey.encodePoint(false).subarray(1, 64);
+            var key = new Neo.Cryptography.ECDsaCryptoKey(PublicKey);
+            var ecdsa = new Neo.Cryptography.ECDsa(key);
+            {
+                return ecdsa.verify(message, signature);
+            }
+        };
+        Helper.String2Bytes = function (str) {
+            var back = [];
+            var byteSize = 0;
+            for (var i = 0; i < str.length; i++) {
+                var code = str.charCodeAt(i);
+                if (0x00 <= code && code <= 0x7f) {
+                    byteSize += 1;
+                    back.push(code);
+                }
+                else if (0x80 <= code && code <= 0x7ff) {
+                    byteSize += 2;
+                    back.push((192 | (31 & (code >> 6))));
+                    back.push((128 | (63 & code)));
+                }
+                else if ((0x800 <= code && code <= 0xd7ff)
+                    || (0xe000 <= code && code <= 0xffff)) {
+                    byteSize += 3;
+                    back.push((224 | (15 & (code >> 12))));
+                    back.push((128 | (63 & (code >> 6))));
+                    back.push((128 | (63 & code)));
+                }
+            }
+            var uarr = new Uint8Array(back.length);
+            for (i = 0; i < back.length; i++) {
+                uarr[i] = back[i] & 0xff;
+            }
+            return uarr;
+        };
+        Helper.Bytes2String = function (_arr) {
+            var UTF = '';
+            for (var i = 0; i < _arr.length; i++) {
+                var one = _arr[i].toString(2), v = one.match(/^1+?(?=0)/);
+                if (v && one.length == 8) {
+                    var bytesLength = v[0].length;
+                    var store = _arr[i].toString(2).slice(7 - bytesLength);
+                    for (var st = 1; st < bytesLength; st++) {
+                        store += _arr[st + i].toString(2).slice(2);
+                    }
+                    UTF += String.fromCharCode(parseInt(store, 2));
+                    i += bytesLength - 1;
+                }
+                else {
+                    UTF += String.fromCharCode(_arr[i]);
+                }
+            }
+            return UTF;
+        };
+        Helper.Aes256Encrypt = function (src, key) {
+            var srcs = CryptoJS.enc.Utf8.parse(src);
+            var keys = CryptoJS.enc.Utf8.parse(key);
+            var encryptedkey = CryptoJS.AES.encrypt(srcs, keys, {
+                mode: CryptoJS.mode.ECB,
+                padding: CryptoJS.pad.NoPadding
+            });
+            return encryptedkey.ciphertext.toString();
+        };
+        Helper.Aes256Encrypt_u8 = function (src, key) {
+            var srcs = CryptoJS.enc.Utf8.parse("1234123412341234");
+            srcs.sigBytes = src.length;
+            srcs.words = new Array(src.length / 4);
+            for (var i = 0; i < src.length / 4; i++) {
+                srcs.words[i] = src[i * 4 + 3] + src[i * 4 + 2] * 256 + src[i * 4 + 1] * 256 * 256 + src[i * 4 + 0] * 256 * 256 * 256;
+            }
+            var keys = CryptoJS.enc.Utf8.parse("1234123412341234");
+            keys.sigBytes = key.length;
+            keys.words = new Array(key.length / 4);
+            for (var i = 0; i < key.length / 4; i++) {
+                keys.words[i] = key[i * 4 + 3] + key[i * 4 + 2] * 256 + key[i * 4 + 1] * 256 * 256 + key[i * 4 + 0] * 256 * 256 * 256;
+            }
+            var encryptedkey = CryptoJS.AES.encrypt(srcs, keys, {
+                mode: CryptoJS.mode.ECB,
+                padding: CryptoJS.pad.NoPadding
+            });
+            var str = encryptedkey.ciphertext.toString();
+            return str.hexToBytes();
+        };
+        Helper.Aes256Decrypt_u8 = function (encryptedkey, key) {
+            var keys = CryptoJS.enc.Utf8.parse("1234123412341234");
+            keys.sigBytes = key.length;
+            keys.words = new Array(key.length / 4);
+            for (var i = 0; i < key.length / 4; i++) {
+                keys.words[i] = key[i * 4 + 3] + key[i * 4 + 2] * 256 + key[i * 4 + 1] * 256 * 256 + key[i * 4 + 0] * 256 * 256 * 256;
+            }
+            var base64key = ThinNeo.Base64.fromByteArray(encryptedkey);
+            var srcs = CryptoJS.AES.decrypt(base64key, keys, {
+                mode: CryptoJS.mode.ECB,
+                padding: CryptoJS.pad.NoPadding
+            });
+            var str = srcs.toString();
+            return str.hexToBytes();
+        };
+        Helper.GetNep2FromPrivateKey = function (prikey, passphrase, n, r, p, callback) {
+            if (n === void 0) { n = 16384; }
+            if (r === void 0) { r = 8; }
+            if (p === void 0) { p = 8; }
+            var pp = scrypt.getAvailableMod();
+            scrypt.setResPath('./static/js/asset');
+            var addresshash = null;
+            var ready = function () {
+                var param = {
+                    N: n,
+                    r: r,
+                    P: p
+                };
+                var opt = {
+                    maxPassLen: 32,
+                    maxSaltLen: 32,
+                    maxDkLen: 64,
+                    maxThread: 4
+                };
+                try {
+                    scrypt.config(param, opt);
+                }
+                catch (err) {
+                    console.warn('config err: ', err);
+                }
+            };
+            scrypt.onload = function () {
+                console.log("scrypt.onload");
+                scrypt_loaded = true;
+                ready();
+            };
+            scrypt.onerror = function (err) {
+                console.warn('scrypt err:', err);
+                callback("error", err);
+            };
+            scrypt.oncomplete = function (dk) {
+                console.log('done', scrypt.binToHex(dk));
+                var u8dk = new Uint8Array(dk);
+                var derivedhalf1 = u8dk.subarray(0, 32);
+                var derivedhalf2 = u8dk.subarray(32, 64);
+                var u8xor = new Uint8Array(32);
+                for (var i = 0; i < 32; i++) {
+                    u8xor[i] = prikey[i] ^ derivedhalf1[i];
+                }
+                var encryptedkey = Helper.Aes256Encrypt_u8(u8xor, derivedhalf2);
+                var buffer = new Uint8Array(39);
+                buffer[0] = 0x01;
+                buffer[1] = 0x42;
+                buffer[2] = 0xe0;
+                for (var i = 3; i < 3 + 4; i++) {
+                    buffer[i] = addresshash[i - 3];
+                }
+                for (var i = 7; i < 32 + 7; i++) {
+                    buffer[i] = encryptedkey[i - 7];
+                }
+                var b1 = Neo.Cryptography.Sha256.computeHash(buffer);
+                b1 = Neo.Cryptography.Sha256.computeHash(b1);
+                var u8hash = new Uint8Array(b1);
+                var outbuf = new Uint8Array(39 + 4);
+                for (var i = 0; i < 39; i++) {
+                    outbuf[i] = buffer[i];
+                }
+                for (var i = 39; i < 39 + 4; i++) {
+                    outbuf[i] = u8hash[i - 39];
+                }
+                var base58str = Neo.Cryptography.Base58.encode(outbuf);
+                callback("finish", base58str);
+            };
+            scrypt.onprogress = function (percent) {
+                console.log('onprogress');
+            };
+            scrypt.onready = function () {
+                var pubkey = Helper.GetPublicKeyFromPrivateKey(prikey);
+                var script_hash = Helper.GetPublicKeyScriptHashFromPublicKey(pubkey);
+                var address = Helper.GetAddressFromScriptHash(script_hash);
+                var addrbin = scrypt.strToBin(address);
+                var b1 = Neo.Cryptography.Sha256.computeHash(addrbin);
+                b1 = Neo.Cryptography.Sha256.computeHash(b1);
+                var b2 = new Uint8Array(b1);
+                addresshash = b2.subarray(0, 4);
+                var passbin = scrypt.strToBin(passphrase);
+                scrypt.hash(passbin, addresshash, 64);
+            };
+            if (scrypt_loaded == false) {
+                scrypt.load("asmjs");
+            }
+            else {
+                ready();
+            }
+            return;
+        };
+        Helper.GetPrivateKeyFromNep2 = function (nep2, passphrase, n, r, p, callback) {
+            if (n === void 0) { n = 16384; }
+            if (r === void 0) { r = 8; }
+            if (p === void 0) { p = 8; }
+            var data = Neo.Cryptography.Base58.decode(nep2);
+            if (data.length != 39 + 4) {
+                callback("error", "data.length error");
+                return;
+            }
+            if (data[0] != 0x01 || data[1] != 0x42 || data[2] != 0xe0) {
+                callback("error", "dataheader error");
+                return;
+            }
+            var hash = data.subarray(39, 39 + 4);
+            var buffer = data.subarray(0, 39);
+            var b1 = Neo.Cryptography.Sha256.computeHash(buffer);
+            b1 = Neo.Cryptography.Sha256.computeHash(b1);
+            var u8hash = new Uint8Array(b1);
+            for (var i = 0; i < 4; i++) {
+                if (u8hash[i] != hash[i]) {
+                    callback("error", "data hash error");
+                    return;
+                }
+            }
+            var addresshash = buffer.subarray(3, 3 + 4);
+            var encryptedkey = buffer.subarray(7, 7 + 32);
+            var pp = scrypt.getAvailableMod();
+            scrypt.setResPath('./static/js/asset');
+            var ready = function () {
+                var param = {
+                    N: n,
+                    r: r,
+                    P: p
+                };
+                var opt = {
+                    maxPassLen: 32,
+                    maxSaltLen: 32,
+                    maxDkLen: 64,
+                    maxThread: 4
+                };
+                try {
+                    scrypt.config(param, opt);
+                }
+                catch (err) {
+                    console.warn('config err: ', err);
+                }
+            };
+            scrypt.onload = function () {
+                console.log("scrypt.onload");
+                scrypt_loaded = true;
+                ready();
+            };
+            scrypt.oncomplete = function (dk) {
+                console.log('done', scrypt.binToHex(dk));
+                var u8dk = new Uint8Array(dk);
+                var derivedhalf1 = u8dk.subarray(0, 32);
+                var derivedhalf2 = u8dk.subarray(32, 64);
+                var u8xor = Helper.Aes256Decrypt_u8(encryptedkey, derivedhalf2);
+                var prikey = new Uint8Array(u8xor.length);
+                for (var i = 0; i < 32; i++) {
+                    prikey[i] = u8xor[i] ^ derivedhalf1[i];
+                }
+                var pubkey = Helper.GetPublicKeyFromPrivateKey(prikey);
+                var script_hash = Helper.GetPublicKeyScriptHashFromPublicKey(pubkey);
+                var address = Helper.GetAddressFromScriptHash(script_hash);
+                var addrbin = scrypt.strToBin(address);
+                var b1 = Neo.Cryptography.Sha256.computeHash(addrbin);
+                b1 = Neo.Cryptography.Sha256.computeHash(b1);
+                var b2 = new Uint8Array(b1);
+                var addresshashgot = b2.subarray(0, 4);
+                for (var i = 0; i < 4; i++) {
+                    if (addresshash[i] != b2[i]) {
+                        callback("error", "nep2 hash not match.");
+                        return;
+                    }
+                }
+                callback("finish", prikey);
+            };
+            scrypt.onerror = function (err) {
+                console.warn('scrypt err:', err);
+                callback("error", err);
+            };
+            scrypt.onprogress = function (percent) {
+                console.log('onprogress');
+            };
+            scrypt.onready = function () {
+                var passbin = scrypt.strToBin(passphrase);
+                scrypt.hash(passbin, addresshash, 64);
+            };
+            if (scrypt_loaded == false) {
+                scrypt.load("asmjs");
+            }
+            else {
+                ready();
+            }
+        };
+        return Helper;
+    }());
+    ThinNeo.Helper = Helper;
+})(ThinNeo || (ThinNeo = {}));
+var ThinNeo;
+(function (ThinNeo) {
+    var OpCode;
+    (function (OpCode) {
+        OpCode[OpCode["PUSH0"] = 0] = "PUSH0";
+        OpCode[OpCode["PUSHF"] = 0] = "PUSHF";
+        OpCode[OpCode["PUSHBYTES1"] = 1] = "PUSHBYTES1";
+        OpCode[OpCode["PUSHBYTES75"] = 75] = "PUSHBYTES75";
+        OpCode[OpCode["PUSHDATA1"] = 76] = "PUSHDATA1";
+        OpCode[OpCode["PUSHDATA2"] = 77] = "PUSHDATA2";
+        OpCode[OpCode["PUSHDATA4"] = 78] = "PUSHDATA4";
+        OpCode[OpCode["PUSHM1"] = 79] = "PUSHM1";
+        OpCode[OpCode["PUSH1"] = 81] = "PUSH1";
+        OpCode[OpCode["PUSHT"] = 81] = "PUSHT";
+        OpCode[OpCode["PUSH2"] = 82] = "PUSH2";
+        OpCode[OpCode["PUSH3"] = 83] = "PUSH3";
+        OpCode[OpCode["PUSH4"] = 84] = "PUSH4";
+        OpCode[OpCode["PUSH5"] = 85] = "PUSH5";
+        OpCode[OpCode["PUSH6"] = 86] = "PUSH6";
+        OpCode[OpCode["PUSH7"] = 87] = "PUSH7";
+        OpCode[OpCode["PUSH8"] = 88] = "PUSH8";
+        OpCode[OpCode["PUSH9"] = 89] = "PUSH9";
+        OpCode[OpCode["PUSH10"] = 90] = "PUSH10";
+        OpCode[OpCode["PUSH11"] = 91] = "PUSH11";
+        OpCode[OpCode["PUSH12"] = 92] = "PUSH12";
+        OpCode[OpCode["PUSH13"] = 93] = "PUSH13";
+        OpCode[OpCode["PUSH14"] = 94] = "PUSH14";
+        OpCode[OpCode["PUSH15"] = 95] = "PUSH15";
+        OpCode[OpCode["PUSH16"] = 96] = "PUSH16";
+        OpCode[OpCode["NOP"] = 97] = "NOP";
+        OpCode[OpCode["JMP"] = 98] = "JMP";
+        OpCode[OpCode["JMPIF"] = 99] = "JMPIF";
+        OpCode[OpCode["JMPIFNOT"] = 100] = "JMPIFNOT";
+        OpCode[OpCode["CALL"] = 101] = "CALL";
+        OpCode[OpCode["RET"] = 102] = "RET";
+        OpCode[OpCode["APPCALL"] = 103] = "APPCALL";
+        OpCode[OpCode["SYSCALL"] = 104] = "SYSCALL";
+        OpCode[OpCode["TAILCALL"] = 105] = "TAILCALL";
+        OpCode[OpCode["DUPFROMALTSTACK"] = 106] = "DUPFROMALTSTACK";
+        OpCode[OpCode["TOALTSTACK"] = 107] = "TOALTSTACK";
+        OpCode[OpCode["FROMALTSTACK"] = 108] = "FROMALTSTACK";
+        OpCode[OpCode["XDROP"] = 109] = "XDROP";
+        OpCode[OpCode["XSWAP"] = 114] = "XSWAP";
+        OpCode[OpCode["XTUCK"] = 115] = "XTUCK";
+        OpCode[OpCode["DEPTH"] = 116] = "DEPTH";
+        OpCode[OpCode["DROP"] = 117] = "DROP";
+        OpCode[OpCode["DUP"] = 118] = "DUP";
+        OpCode[OpCode["NIP"] = 119] = "NIP";
+        OpCode[OpCode["OVER"] = 120] = "OVER";
+        OpCode[OpCode["PICK"] = 121] = "PICK";
+        OpCode[OpCode["ROLL"] = 122] = "ROLL";
+        OpCode[OpCode["ROT"] = 123] = "ROT";
+        OpCode[OpCode["SWAP"] = 124] = "SWAP";
+        OpCode[OpCode["TUCK"] = 125] = "TUCK";
+        OpCode[OpCode["CAT"] = 126] = "CAT";
+        OpCode[OpCode["SUBSTR"] = 127] = "SUBSTR";
+        OpCode[OpCode["LEFT"] = 128] = "LEFT";
+        OpCode[OpCode["RIGHT"] = 129] = "RIGHT";
+        OpCode[OpCode["SIZE"] = 130] = "SIZE";
+        OpCode[OpCode["INVERT"] = 131] = "INVERT";
+        OpCode[OpCode["AND"] = 132] = "AND";
+        OpCode[OpCode["OR"] = 133] = "OR";
+        OpCode[OpCode["XOR"] = 134] = "XOR";
+        OpCode[OpCode["EQUAL"] = 135] = "EQUAL";
+        OpCode[OpCode["INC"] = 139] = "INC";
+        OpCode[OpCode["DEC"] = 140] = "DEC";
+        OpCode[OpCode["SIGN"] = 141] = "SIGN";
+        OpCode[OpCode["NEGATE"] = 143] = "NEGATE";
+        OpCode[OpCode["ABS"] = 144] = "ABS";
+        OpCode[OpCode["NOT"] = 145] = "NOT";
+        OpCode[OpCode["NZ"] = 146] = "NZ";
+        OpCode[OpCode["ADD"] = 147] = "ADD";
+        OpCode[OpCode["SUB"] = 148] = "SUB";
+        OpCode[OpCode["MUL"] = 149] = "MUL";
+        OpCode[OpCode["DIV"] = 150] = "DIV";
+        OpCode[OpCode["MOD"] = 151] = "MOD";
+        OpCode[OpCode["SHL"] = 152] = "SHL";
+        OpCode[OpCode["SHR"] = 153] = "SHR";
+        OpCode[OpCode["BOOLAND"] = 154] = "BOOLAND";
+        OpCode[OpCode["BOOLOR"] = 155] = "BOOLOR";
+        OpCode[OpCode["NUMEQUAL"] = 156] = "NUMEQUAL";
+        OpCode[OpCode["NUMNOTEQUAL"] = 158] = "NUMNOTEQUAL";
+        OpCode[OpCode["LT"] = 159] = "LT";
+        OpCode[OpCode["GT"] = 160] = "GT";
+        OpCode[OpCode["LTE"] = 161] = "LTE";
+        OpCode[OpCode["GTE"] = 162] = "GTE";
+        OpCode[OpCode["MIN"] = 163] = "MIN";
+        OpCode[OpCode["MAX"] = 164] = "MAX";
+        OpCode[OpCode["WITHIN"] = 165] = "WITHIN";
+        OpCode[OpCode["SHA1"] = 167] = "SHA1";
+        OpCode[OpCode["SHA256"] = 168] = "SHA256";
+        OpCode[OpCode["HASH160"] = 169] = "HASH160";
+        OpCode[OpCode["HASH256"] = 170] = "HASH256";
+        OpCode[OpCode["CSHARPSTRHASH32"] = 171] = "CSHARPSTRHASH32";
+        OpCode[OpCode["JAVAHASH32"] = 173] = "JAVAHASH32";
+        OpCode[OpCode["CHECKSIG"] = 172] = "CHECKSIG";
+        OpCode[OpCode["CHECKMULTISIG"] = 174] = "CHECKMULTISIG";
+        OpCode[OpCode["ARRAYSIZE"] = 192] = "ARRAYSIZE";
+        OpCode[OpCode["PACK"] = 193] = "PACK";
+        OpCode[OpCode["UNPACK"] = 194] = "UNPACK";
+        OpCode[OpCode["PICKITEM"] = 195] = "PICKITEM";
+        OpCode[OpCode["SETITEM"] = 196] = "SETITEM";
+        OpCode[OpCode["NEWARRAY"] = 197] = "NEWARRAY";
+        OpCode[OpCode["NEWSTRUCT"] = 198] = "NEWSTRUCT";
+        OpCode[OpCode["SWITCH"] = 208] = "SWITCH";
+        OpCode[OpCode["THROW"] = 240] = "THROW";
+        OpCode[OpCode["THROWIFNOT"] = 241] = "THROWIFNOT";
+    })(OpCode = ThinNeo.OpCode || (ThinNeo.OpCode = {}));
+})(ThinNeo || (ThinNeo = {}));
+var ThinNeo;
+(function (ThinNeo) {
+    var VM;
+    (function (VM) {
+        var RandomAccessStack = (function () {
+            function RandomAccessStack() {
+                this.list = new Array();
+            }
+            Object.defineProperty(RandomAccessStack.prototype, "Count", {
+                get: function () {
+                    return this.list.length;
+                },
+                enumerable: true,
+                configurable: true
+            });
+            RandomAccessStack.prototype.Clear = function () {
+                this.list.splice(0, this.list.length);
+            };
+            RandomAccessStack.prototype.GetItem = function (index) {
+                return this.list[index];
+            };
+            RandomAccessStack.prototype.Insert = function (index, item) {
+                if (index > this.list.length)
+                    throw new Error("InvalidOperationException");
+                this.list.splice(this.list.length - index, 0, item);
+            };
+            RandomAccessStack.prototype.Peek = function (index) {
+                if (index === void 0) { index = 0; }
+                if (index >= this.list.length)
+                    throw new Error("InvalidOperationException");
+                return this.list[this.list.length - 1 - index];
+            };
+            RandomAccessStack.prototype.Pop = function () {
+                return this.Remove(0);
+            };
+            RandomAccessStack.prototype.Push = function (item) {
+                this.list.push(item);
+            };
+            RandomAccessStack.prototype.Remove = function (index) {
+                if (index >= this.list.length)
+                    throw new Error("InvalidOperationException");
+                var item = this.list[this.list.length - index - 1];
+                this.list.splice(this.list.length - index - 1, 1);
+                return item;
+            };
+            RandomAccessStack.prototype.Set = function (index, item) {
+                if (index >= this.list.length)
+                    throw new Error("InvalidOperationException");
+                this.list[this.list.length - index - 1] = item;
+            };
+            return RandomAccessStack;
+        }());
+        VM.RandomAccessStack = RandomAccessStack;
+    })(VM = ThinNeo.VM || (ThinNeo.VM = {}));
+})(ThinNeo || (ThinNeo = {}));
+var ThinNeo;
+(function (ThinNeo) {
+    var ScriptBuilder = (function () {
+        function ScriptBuilder() {
+            this.Offset = 0;
+            this.writer = [];
+        }
+        ScriptBuilder.prototype._WriteUint8 = function (num) {
+            this.writer.push(num);
+            this.Offset++;
+        };
+        ScriptBuilder.prototype._WriteUint16 = function (num) {
+            var buf = new Uint8Array(2);
+            var d = new DataView(buf.buffer, 0, 2);
+            d.setUint16(0, num, true);
+            this.writer.push(buf[0]);
+            this.writer.push(buf[1]);
+            this.Offset += 2;
+        };
+        ScriptBuilder.prototype._WriteUint32 = function (num) {
+            var buf = new Uint8Array(4);
+            var d = new DataView(buf.buffer, 0, 4);
+            d.setUint32(0, num, true);
+            this.writer.push(buf[0]);
+            this.writer.push(buf[1]);
+            this.writer.push(buf[2]);
+            this.writer.push(buf[3]);
+            this.Offset += 4;
+        };
+        ScriptBuilder.prototype._WriteUint8Array = function (nums) {
+            for (var i = 0; i < nums.length; i++)
+                this.writer.push(nums[i]);
+            this.Offset += nums.length;
+        };
+        ScriptBuilder.prototype._ConvertInt16ToBytes = function (num) {
+            var buf = new Uint8Array(2);
+            var d = new DataView(buf.buffer, 0, 2);
+            d.setInt16(0, num, true);
+            return buf;
+        };
+        ScriptBuilder.prototype.Emit = function (op, arg) {
+            if (arg === void 0) { arg = null; }
+            this._WriteUint8(op);
+            if (arg != null)
+                this._WriteUint8Array(arg);
+            return this;
+        };
+        ScriptBuilder.prototype.EmitAppCall = function (scriptHash, useTailCall) {
+            if (useTailCall === void 0) { useTailCall = false; }
+            var hash = null;
+            if (scriptHash instanceof Neo.Uint160) {
+                hash = new Uint8Array(scriptHash.bits.buffer);
+            }
+            else if (scriptHash.length != 20)
+                throw new Error("error scriptHash length");
+            else {
+                hash = scriptHash;
+            }
+            return this.Emit(useTailCall ? ThinNeo.OpCode.TAILCALL : ThinNeo.OpCode.APPCALL, hash);
+        };
+        ScriptBuilder.prototype.EmitJump = function (op, offset) {
+            if (op != ThinNeo.OpCode.JMP && op != ThinNeo.OpCode.JMPIF && op != ThinNeo.OpCode.JMPIFNOT && op != ThinNeo.OpCode.CALL)
+                throw new Error("ArgumentException");
+            return this.Emit(op, this._ConvertInt16ToBytes(offset));
+        };
+        ScriptBuilder.prototype.EmitPushNumber = function (number) {
+            var i32 = number.toInt32();
+            if (i32 == -1)
+                return this.Emit(ThinNeo.OpCode.PUSHM1);
+            if (i32 == 0)
+                return this.Emit(ThinNeo.OpCode.PUSH0);
+            if (i32 > 0 && i32 <= 16)
+                return this.Emit(ThinNeo.OpCode.PUSH1 - 1 + i32);
+            return this.EmitPushBytes(number.toUint8ArrayWithSign(true));
+        };
+        ScriptBuilder.prototype.EmitPushBool = function (data) {
+            return this.Emit(data ? ThinNeo.OpCode.PUSHT : ThinNeo.OpCode.PUSHF);
+        };
+        ScriptBuilder.prototype.EmitPushBytes = function (data) {
+            if (data == null)
+                throw new Error("ArgumentNullException");
+            if (data.length <= ThinNeo.OpCode.PUSHBYTES75) {
+                this._WriteUint8(data.length);
+                this._WriteUint8Array(data);
+            }
+            else if (data.length < 0x100) {
+                this.Emit(ThinNeo.OpCode.PUSHDATA1);
+                this._WriteUint8(data.length);
+                this._WriteUint8Array(data);
+            }
+            else if (data.length < 0x10000) {
+                this.Emit(ThinNeo.OpCode.PUSHDATA2);
+                this._WriteUint16(data.length);
+                this._WriteUint8Array(data);
+            }
+            else {
+                this.Emit(ThinNeo.OpCode.PUSHDATA4);
+                this._WriteUint32(data.length);
+                this._WriteUint8Array(data);
+            }
+            return this;
+        };
+        ScriptBuilder.prototype.EmitPushString = function (data) {
+            return this.EmitPushBytes(ThinNeo.Helper.String2Bytes(data));
+        };
+        ScriptBuilder.prototype.EmitSysCall = function (api) {
+            if (api == null)
+                throw new Error("ArgumentNullException");
+            var api_bytes = ThinNeo.Helper.String2Bytes(api);
+            if (api_bytes.length == 0 || api_bytes.length > 252)
+                throw new Error("ArgumentException");
+            var arg = new Uint8Array(api_bytes.length + 1);
+            arg[0] = api_bytes.length;
+            for (var i = 0; i < api_bytes.length; i++) {
+                arg[i + 1] = api_bytes[i];
+            }
+            return this.Emit(ThinNeo.OpCode.SYSCALL, arg);
+        };
+        ScriptBuilder.prototype.ToArray = function () {
+            var array = new Uint8Array(this.writer.length);
+            for (var i = 0; i < this.writer.length; i++) {
+                array[i] = this.writer[i];
+            }
+            return array;
+        };
+        ScriptBuilder.prototype.EmitParamJson = function (param) {
+            if (typeof param === "number") {
+                this.EmitPushNumber(new Neo.BigInteger(param));
+            }
+            else if (typeof param === "boolean") {
+                this.EmitPushBool(param);
+            }
+            else if (typeof param === "object") {
+                var list = param;
+                for (var i = list.length - 1; i >= 0; i--) {
+                    this.EmitParamJson(list[i]);
+                }
+                this.EmitPushNumber(new Neo.BigInteger(list.length));
+                this.Emit(ThinNeo.OpCode.PACK);
+            }
+            else if (typeof param === "string") {
+                var str = param;
+                if (str[0] != '(')
+                    throw new Error("must start with:(str) or (hex) or (hexrev) or (addr)or(int)");
+                if (str.indexOf("(string)") == 0) {
+                    this.EmitPushString(str.substr(8));
+                }
+                if (str.indexOf("(str)") == 0) {
+                    this.EmitPushString(str.substr(5));
+                }
+                else if (str.indexOf("(bytes)") == 0) {
+                    var hex = str.substr(7).hexToBytes();
+                    this.EmitPushBytes(hex);
+                }
+                else if (str.indexOf("([])") == 0) {
+                    var hex = str.substr(4).hexToBytes();
+                    this.EmitPushBytes(hex);
+                }
+                else if (str.indexOf("(address)") == 0) {
+                    var addr = (str.substr(9));
+                    var hex = ThinNeo.Helper.GetPublicKeyScriptHash_FromAddress(addr);
+                    this.EmitPushBytes(hex);
+                }
+                else if (str.indexOf("(addr)") == 0) {
+                    var addr = (str.substr(6));
+                    var hex = ThinNeo.Helper.GetPublicKeyScriptHash_FromAddress(addr);
+                    this.EmitPushBytes(hex);
+                }
+                else if (str.indexOf("(integer)") == 0) {
+                    var num = new Neo.BigInteger(str.substr(9));
+                    this.EmitPushNumber(num);
+                }
+                else if (str.indexOf("(int)") == 0) {
+                    var num = new Neo.BigInteger(str.substr(5));
+                    this.EmitPushNumber(num);
+                }
+                else if (str.indexOf("(hexinteger)") == 0) {
+                    var hex = str.substr(12).hexToBytes();
+                    this.EmitPushBytes(hex.reverse());
+                }
+                else if (str.indexOf("(hexint)") == 0) {
+                    var hex = str.substr(8).hexToBytes();
+                    this.EmitPushBytes(hex.reverse());
+                }
+                else if (str.indexOf("(hex)") == 0) {
+                    var hex = str.substr(5).hexToBytes();
+                    this.EmitPushBytes(hex.reverse());
+                }
+                else if (str.indexOf("(int256)") == 0 || str.indexOf("(hex256)") == 0) {
+                    var hex = str.substr(8).hexToBytes();
+                    if (hex.length != 32)
+                        throw new Error("not a int256");
+                    this.EmitPushBytes(hex.reverse());
+                }
+                else if (str.indexOf("(int160)") == 0 || str.indexOf("(hex160)") == 0) {
+                    var hex = str.substr(8).hexToBytes();
+                    if (hex.length != 20)
+                        throw new Error("not a int160");
+                    this.EmitPushBytes(hex.reverse());
+                }
+                else
+                    throw new Error("must start with:(str) or (hex) or (hexbig) or (addr) or(int)");
+            }
+            else {
+                throw new Error("error type:" + typeof param);
+            }
+            return this;
+        };
+        return ScriptBuilder;
+    }());
+    ThinNeo.ScriptBuilder = ScriptBuilder;
+})(ThinNeo || (ThinNeo = {}));
+var ThinNeo;
+(function (ThinNeo) {
+    var TransactionType;
+    (function (TransactionType) {
+        TransactionType[TransactionType["MinerTransaction"] = 0] = "MinerTransaction";
+        TransactionType[TransactionType["IssueTransaction"] = 1] = "IssueTransaction";
+        TransactionType[TransactionType["ClaimTransaction"] = 2] = "ClaimTransaction";
+        TransactionType[TransactionType["EnrollmentTransaction"] = 32] = "EnrollmentTransaction";
+        TransactionType[TransactionType["RegisterTransaction"] = 64] = "RegisterTransaction";
+        TransactionType[TransactionType["ContractTransaction"] = 128] = "ContractTransaction";
+        TransactionType[TransactionType["PublishTransaction"] = 208] = "PublishTransaction";
+        TransactionType[TransactionType["InvocationTransaction"] = 209] = "InvocationTransaction";
+    })(TransactionType = ThinNeo.TransactionType || (ThinNeo.TransactionType = {}));
+    var TransactionAttributeUsage;
+    (function (TransactionAttributeUsage) {
+        TransactionAttributeUsage[TransactionAttributeUsage["ContractHash"] = 0] = "ContractHash";
+        TransactionAttributeUsage[TransactionAttributeUsage["ECDH02"] = 2] = "ECDH02";
+        TransactionAttributeUsage[TransactionAttributeUsage["ECDH03"] = 3] = "ECDH03";
+        TransactionAttributeUsage[TransactionAttributeUsage["Script"] = 32] = "Script";
+        TransactionAttributeUsage[TransactionAttributeUsage["Vote"] = 48] = "Vote";
+        TransactionAttributeUsage[TransactionAttributeUsage["DescriptionUrl"] = 129] = "DescriptionUrl";
+        TransactionAttributeUsage[TransactionAttributeUsage["Description"] = 144] = "Description";
+        TransactionAttributeUsage[TransactionAttributeUsage["Hash1"] = 161] = "Hash1";
+        TransactionAttributeUsage[TransactionAttributeUsage["Hash2"] = 162] = "Hash2";
+        TransactionAttributeUsage[TransactionAttributeUsage["Hash3"] = 163] = "Hash3";
+        TransactionAttributeUsage[TransactionAttributeUsage["Hash4"] = 164] = "Hash4";
+        TransactionAttributeUsage[TransactionAttributeUsage["Hash5"] = 165] = "Hash5";
+        TransactionAttributeUsage[TransactionAttributeUsage["Hash6"] = 166] = "Hash6";
+        TransactionAttributeUsage[TransactionAttributeUsage["Hash7"] = 167] = "Hash7";
+        TransactionAttributeUsage[TransactionAttributeUsage["Hash8"] = 168] = "Hash8";
+        TransactionAttributeUsage[TransactionAttributeUsage["Hash9"] = 169] = "Hash9";
+        TransactionAttributeUsage[TransactionAttributeUsage["Hash10"] = 170] = "Hash10";
+        TransactionAttributeUsage[TransactionAttributeUsage["Hash11"] = 171] = "Hash11";
+        TransactionAttributeUsage[TransactionAttributeUsage["Hash12"] = 172] = "Hash12";
+        TransactionAttributeUsage[TransactionAttributeUsage["Hash13"] = 173] = "Hash13";
+        TransactionAttributeUsage[TransactionAttributeUsage["Hash14"] = 174] = "Hash14";
+        TransactionAttributeUsage[TransactionAttributeUsage["Hash15"] = 175] = "Hash15";
+        TransactionAttributeUsage[TransactionAttributeUsage["Remark"] = 240] = "Remark";
+        TransactionAttributeUsage[TransactionAttributeUsage["Remark1"] = 241] = "Remark1";
+        TransactionAttributeUsage[TransactionAttributeUsage["Remark2"] = 242] = "Remark2";
+        TransactionAttributeUsage[TransactionAttributeUsage["Remark3"] = 243] = "Remark3";
+        TransactionAttributeUsage[TransactionAttributeUsage["Remark4"] = 244] = "Remark4";
+        TransactionAttributeUsage[TransactionAttributeUsage["Remark5"] = 245] = "Remark5";
+        TransactionAttributeUsage[TransactionAttributeUsage["Remark6"] = 246] = "Remark6";
+        TransactionAttributeUsage[TransactionAttributeUsage["Remark7"] = 247] = "Remark7";
+        TransactionAttributeUsage[TransactionAttributeUsage["Remark8"] = 248] = "Remark8";
+        TransactionAttributeUsage[TransactionAttributeUsage["Remark9"] = 249] = "Remark9";
+        TransactionAttributeUsage[TransactionAttributeUsage["Remark10"] = 250] = "Remark10";
+        TransactionAttributeUsage[TransactionAttributeUsage["Remark11"] = 251] = "Remark11";
+        TransactionAttributeUsage[TransactionAttributeUsage["Remark12"] = 252] = "Remark12";
+        TransactionAttributeUsage[TransactionAttributeUsage["Remark13"] = 253] = "Remark13";
+        TransactionAttributeUsage[TransactionAttributeUsage["Remark14"] = 254] = "Remark14";
+        TransactionAttributeUsage[TransactionAttributeUsage["Remark15"] = 255] = "Remark15";
+    })(TransactionAttributeUsage = ThinNeo.TransactionAttributeUsage || (ThinNeo.TransactionAttributeUsage = {}));
+    var Attribute = (function () {
+        function Attribute() {
+        }
+        return Attribute;
+    }());
+    ThinNeo.Attribute = Attribute;
+    var TransactionOutput = (function () {
+        function TransactionOutput() {
+        }
+        return TransactionOutput;
+    }());
+    ThinNeo.TransactionOutput = TransactionOutput;
+    var TransactionInput = (function () {
+        function TransactionInput() {
+        }
+        return TransactionInput;
+    }());
+    ThinNeo.TransactionInput = TransactionInput;
+    var Witness = (function () {
+        function Witness() {
+        }
+        Object.defineProperty(Witness.prototype, "Address", {
+            get: function () {
+                var hash = ThinNeo.Helper.GetScriptHashFromScript(this.VerificationScript);
+                return ThinNeo.Helper.GetAddressFromScriptHash(hash);
+            },
+            enumerable: true,
+            configurable: true
+        });
+        return Witness;
+    }());
+    ThinNeo.Witness = Witness;
+    var InvokeTransData = (function () {
+        function InvokeTransData() {
+        }
+        InvokeTransData.prototype.Serialize = function (trans, writer) {
+            writer.writeVarBytes(this.script.buffer);
+            if (trans.version >= 1) {
+                writer.writeUint64(this.gas.getData());
+            }
+        };
+        InvokeTransData.prototype.Deserialize = function (trans, reader) {
+            var buf = reader.readVarBytes(10000000);
+            this.script = new Uint8Array(buf, 0, buf.byteLength);
+            if (trans.version >= 1) {
+                this.gas = new Neo.Fixed8(reader.readUint64());
+            }
+        };
+        return InvokeTransData;
+    }());
+    ThinNeo.InvokeTransData = InvokeTransData;
+    var ClaimTransData = (function () {
+        function ClaimTransData() {
+        }
+        ClaimTransData.prototype.Serialize = function (trans, writer) {
+            writer.writeVarInt(this.claims.length);
+            for (var i = 0; i < this.claims.length; i++) {
+                writer.write(this.claims[i].hash, 0, 32);
+                writer.writeUint16(this.claims[i].index);
+            }
+        };
+        ClaimTransData.prototype.Deserialize = function (trans, reader) {
+            var countClaims = reader.readVarInt();
+            this.claims = [];
+            for (var i = 0; i < countClaims; i++) {
+                this.claims.push(new TransactionInput());
+                var arr = reader.readBytes(32);
+                this.claims[i].hash = new Uint8Array(arr, 0, arr.byteLength);
+                this.claims[i].index = reader.readUint16();
+            }
+        };
+        return ClaimTransData;
+    }());
+    ThinNeo.ClaimTransData = ClaimTransData;
+    var MinerTransData = (function () {
+        function MinerTransData() {
+        }
+        MinerTransData.prototype.Serialize = function (trans, writer) {
+            writer.writeUint32(this.nonce);
+        };
+        MinerTransData.prototype.Deserialize = function (trans, reader) {
+            this.nonce = reader.readUint32();
+        };
+        return MinerTransData;
+    }());
+    ThinNeo.MinerTransData = MinerTransData;
+    var Transaction = (function () {
+        function Transaction() {
+        }
+        Transaction.prototype.SerializeUnsigned = function (writer) {
+            writer.writeByte(this.type);
+            writer.writeByte(this.version);
+            if (this.type == TransactionType.ContractTransaction ||
+                this.type == TransactionType.IssueTransaction) {
+            }
+            else if (this.type == TransactionType.InvocationTransaction) {
+                this.extdata.Serialize(this, writer);
+            }
+            else if (this.type == TransactionType.ClaimTransaction) {
+                this.extdata.Serialize(this, writer);
+            }
+            else if (this.type == TransactionType.MinerTransaction) {
+                this.extdata.Serialize(this, writer);
+            }
+            else {
+                throw new Error("未编写针对这个交易类型的代码");
+            }
+            var countAttributes = this.attributes.length;
+            writer.writeVarInt(countAttributes);
+            for (var i = 0; i < countAttributes; i++) {
+                var attributeData = this.attributes[i].data;
+                var Usage = this.attributes[i].usage;
+                writer.writeByte(Usage);
+                if (Usage == TransactionAttributeUsage.ContractHash || Usage == TransactionAttributeUsage.Vote || (Usage >= TransactionAttributeUsage.Hash1 && Usage <= TransactionAttributeUsage.Hash15)) {
+                    writer.write(attributeData.buffer, 0, 32);
+                }
+                else if (Usage == TransactionAttributeUsage.ECDH02 || Usage == TransactionAttributeUsage.ECDH03) {
+                    writer.write(attributeData.buffer, 1, 32);
+                }
+                else if (Usage == TransactionAttributeUsage.Script) {
+                    writer.write(attributeData.buffer, 0, 20);
+                }
+                else if (Usage == TransactionAttributeUsage.DescriptionUrl) {
+                    var len = attributeData.length;
+                    writer.writeByte(len);
+                    writer.write(attributeData.buffer, 0, len);
+                }
+                else if (Usage == TransactionAttributeUsage.Description || Usage >= TransactionAttributeUsage.Remark) {
+                    var len = attributeData.length;
+                    writer.writeVarInt(len);
+                    writer.write(attributeData.buffer, 0, len);
+                }
+                else
+                    throw new Error();
+            }
+            var countInputs = this.inputs.length;
+            writer.writeVarInt(countInputs);
+            for (var i = 0; i < countInputs; i++) {
+                writer.write(this.inputs[i].hash, 0, 32);
+                writer.writeUint16(this.inputs[i].index);
+            }
+            var countOutputs = this.outputs.length;
+            writer.writeVarInt(countOutputs);
+            for (var i = 0; i < countOutputs; i++) {
+                var item = this.outputs[i];
+                writer.write(item.assetId.buffer, 0, 32);
+                writer.writeUint64(item.value.getData());
+                writer.write(item.toAddress.buffer, 0, 20);
+            }
+        };
+        Transaction.prototype.Serialize = function (writer) {
+            this.SerializeUnsigned(writer);
+            var witnesscount = this.witnesses.length;
+            writer.writeVarInt(witnesscount);
+            for (var i = 0; i < witnesscount; i++) {
+                var _witness = this.witnesses[i];
+                writer.writeVarBytes(_witness.InvocationScript.buffer);
+                writer.writeVarBytes(_witness.VerificationScript.buffer);
+            }
+        };
+        Transaction.prototype.DeserializeUnsigned = function (ms) {
+            this.type = ms.readByte();
+            this.version = ms.readByte();
+            if (this.type == TransactionType.ContractTransaction
+                || this.type == TransactionType.IssueTransaction) {
+                this.extdata = null;
+            }
+            else if (this.type == TransactionType.InvocationTransaction) {
+                this.extdata = new InvokeTransData();
+            }
+            else if (this.type == TransactionType.ClaimTransaction) {
+                this.extdata = new ClaimTransData();
+            }
+            else if (this.type == TransactionType.MinerTransaction) {
+                this.extdata = new MinerTransData();
+            }
+            else {
+                throw new Error("未编写针对这个交易类型的代码");
+            }
+            if (this.extdata != null) {
+                this.extdata.Deserialize(this, ms);
+            }
+            var countAttributes = ms.readVarInt();
+            this.attributes = [];
+            for (var i = 0; i < countAttributes; i++) {
+                var attributeData = null;
+                var Usage = ms.readByte();
+                if (Usage == TransactionAttributeUsage.ContractHash || Usage == TransactionAttributeUsage.Vote || (Usage >= TransactionAttributeUsage.Hash1 && Usage <= TransactionAttributeUsage.Hash15)) {
+                    var arr = ms.readBytes(32);
+                    attributeData = new Uint8Array(arr, 0, arr.byteLength);
+                }
+                else if (Usage == TransactionAttributeUsage.ECDH02 || Usage == TransactionAttributeUsage.ECDH03) {
+                    var arr = ms.readBytes(32);
+                    var data = new Uint8Array(arr, 0, arr.byteLength);
+                    attributeData = new Uint8Array(33);
+                    attributeData[0] = Usage;
+                    for (var i = 0; i < 32; i++) {
+                        attributeData[i + 1] = data[i];
+                    }
+                }
+                else if (Usage == TransactionAttributeUsage.Script) {
+                    var arr = ms.readBytes(20);
+                    attributeData = new Uint8Array(arr, 0, arr.byteLength);
+                }
+                else if (Usage == TransactionAttributeUsage.DescriptionUrl) {
+                    var len = ms.readByte();
+                    var arr = ms.readBytes(len);
+                    attributeData = new Uint8Array(arr, 0, arr.byteLength);
+                }
+                else if (Usage == TransactionAttributeUsage.Description || Usage >= TransactionAttributeUsage.Remark) {
+                    var len = ms.readVarInt(65535);
+                    var arr = ms.readBytes(len);
+                    attributeData = new Uint8Array(arr, 0, arr.byteLength);
+                }
+                else
+                    throw new Error();
+                var attr = new Attribute();
+                attr.usage = Usage;
+                attr.data = attributeData;
+                this.attributes.push(attr);
+            }
+            var countInputs = ms.readVarInt();
+            this.inputs = [];
+            for (var i = 0; i < countInputs; i++) {
+                this.inputs.push(new TransactionInput());
+                var arr = ms.readBytes(32);
+                this.inputs[i].hash = new Uint8Array(arr, 0, arr.byteLength);
+                this.inputs[i].index = ms.readUint16();
+            }
+            var countOutputs = ms.readVarInt();
+            this.outputs = [];
+            for (var i = 0; i < countOutputs; i++) {
+                this.outputs.push(new TransactionOutput());
+                var outp = this.outputs[i];
+                var arr = ms.readBytes(32);
+                var assetid = new Uint8Array(arr, 0, arr.byteLength);
+                var value = new Neo.Fixed8(ms.readUint64());
+                var arr = ms.readBytes(20);
+                var scripthash = new Uint8Array(arr, 0, arr.byteLength);
+                outp.assetId = assetid;
+                outp.value = value;
+                outp.toAddress = scripthash;
+                this.outputs[i] = outp;
+            }
+        };
+        Transaction.prototype.Deserialize = function (ms) {
+            this.DeserializeUnsigned(ms);
+            if (ms.canRead() > 0) {
+                var witnesscount = ms.readVarInt();
+                this.witnesses = [];
+                for (var i = 0; i < witnesscount; i++) {
+                    this.witnesses.push(new Witness());
+                    this.witnesses[i].InvocationScript = new Uint8Array(ms.readVarBytes()).clone();
+                    this.witnesses[i].VerificationScript = new Uint8Array(ms.readVarBytes()).clone();
+                }
+            }
+        };
+        Transaction.prototype.GetMessage = function () {
+            var ms = new Neo.IO.MemoryStream();
+            var writer = new Neo.IO.BinaryWriter(ms);
+            this.SerializeUnsigned(writer);
+            var arr = ms.toArray();
+            var msg = new Uint8Array(arr, 0, arr.byteLength);
+            return msg;
+        };
+        Transaction.prototype.GetRawData = function () {
+            var ms = new Neo.IO.MemoryStream();
+            var writer = new Neo.IO.BinaryWriter(ms);
+            this.Serialize(writer);
+            var arr = ms.toArray();
+            var msg = new Uint8Array(arr, 0, arr.byteLength);
+            return msg;
+        };
+        Transaction.prototype.AddWitness = function (signdata, pubkey, addrs) {
+            {
+                var msg = this.GetMessage();
+                var bsign = ThinNeo.Helper.VerifySignature(msg, signdata, pubkey);
+                if (bsign == false)
+                    throw new Error("wrong sign");
+                var addr = ThinNeo.Helper.GetAddressFromPublicKey(pubkey);
+                if (addr != addrs)
+                    throw new Error("wrong script");
+            }
+            var vscript = ThinNeo.Helper.GetAddressCheckScriptFromPublicKey(pubkey);
+            var sb = new ThinNeo.ScriptBuilder();
+            sb.EmitPushBytes(signdata);
+            var iscript = sb.ToArray();
+            this.AddWitnessScript(vscript, iscript);
+        };
+        Transaction.prototype.AddWitnessScript = function (vscript, iscript) {
+            var scripthash = ThinNeo.Helper.GetScriptHashFromScript(vscript);
+            if (this.witnesses == null)
+                this.witnesses = [];
+            var newwit = new Witness();
+            newwit.VerificationScript = vscript;
+            newwit.InvocationScript = iscript;
+            for (var i = 0; i < this.witnesses.length; i++) {
+                if (this.witnesses[i].Address == newwit.Address)
+                    throw new Error("alread have this witness");
+            }
+            var _witnesses;
+            if (this.witnesses)
+                _witnesses = this.witnesses;
+            else
+                _witnesses = [];
+            _witnesses.push(newwit);
+            _witnesses.sort(function (a, b) {
+                var hash_a = ThinNeo.Helper.GetScriptHashFromScript(a.VerificationScript);
+                var hash_b = ThinNeo.Helper.GetScriptHashFromScript(b.VerificationScript);
+                for (var i_4 = (hash_a.length - 1); i_4 >= 0; i_4--) {
+                    if (hash_a[i_4] > hash_b[i_4])
+                        return 1;
+                    if (hash_a[i_4] < hash_b[i_4])
+                        return -1;
+                }
+                return 0;
+            });
+            this.witnesses = _witnesses;
+        };
+        Transaction.prototype.GetHash = function () {
+            var msg = this.GetMessage();
+            var data = Neo.Cryptography.Sha256.computeHash(msg);
+            data = Neo.Cryptography.Sha256.computeHash(data);
+            return new Uint8Array(data, 0, data.byteLength);
+        };
+        return Transaction;
+    }());
+    ThinNeo.Transaction = Transaction;
+})(ThinNeo || (ThinNeo = {}));
 var Neo;
 (function (Neo) {
     var Cryptography;
@@ -3286,1413 +5295,6 @@ var Neo;
         IO.MemoryStream = MemoryStream;
     })(IO = Neo.IO || (Neo.IO = {}));
 })(Neo || (Neo = {}));
-var Neo;
-(function (Neo) {
-    var IO;
-    (function (IO) {
-        var Caching;
-        (function (Caching) {
-            var TrackState;
-            (function (TrackState) {
-                TrackState[TrackState["None"] = 0] = "None";
-                TrackState[TrackState["Added"] = 1] = "Added";
-                TrackState[TrackState["Changed"] = 2] = "Changed";
-                TrackState[TrackState["Deleted"] = 3] = "Deleted";
-            })(TrackState = Caching.TrackState || (Caching.TrackState = {}));
-        })(Caching = IO.Caching || (IO.Caching = {}));
-    })(IO = Neo.IO || (Neo.IO = {}));
-})(Neo || (Neo = {}));
-var Neo;
-(function (Neo) {
-    var IO;
-    (function (IO) {
-        var Caching;
-        (function (Caching) {
-            var TrackableCollection = (function () {
-                function TrackableCollection(items) {
-                    this._map = new NeoMap();
-                    if (items != null) {
-                        for (var i = 0; i < items.length; i++) {
-                            this._map.set(items[i].key, items[i]);
-                            items[i].trackState = Caching.TrackState.None;
-                        }
-                    }
-                }
-                TrackableCollection.prototype.add = function (item) {
-                    this._map.set(item.key, item);
-                    item.trackState = Caching.TrackState.Added;
-                };
-                TrackableCollection.prototype.clear = function () {
-                    this._map.forEach(function (value, key, map) {
-                        if (value.trackState == Caching.TrackState.Added)
-                            map.delete(key);
-                        else
-                            value.trackState = Caching.TrackState.Deleted;
-                    });
-                };
-                TrackableCollection.prototype.commit = function () {
-                    this._map.forEach(function (value, key, map) {
-                        if (value.trackState == Caching.TrackState.Deleted)
-                            map.delete(key);
-                        else
-                            value.trackState = Caching.TrackState.None;
-                    });
-                };
-                TrackableCollection.prototype.forEach = function (callback) {
-                    var _this = this;
-                    this._map.forEach(function (value, key) {
-                        callback(value, key, _this);
-                    });
-                };
-                TrackableCollection.prototype.get = function (key) {
-                    return this._map.get(key);
-                };
-                TrackableCollection.prototype.getChangeSet = function () {
-                    var array = new Array();
-                    this._map.forEach(function (value) {
-                        if (value.trackState != Caching.TrackState.None)
-                            array.push(value);
-                    });
-                    return array;
-                };
-                TrackableCollection.prototype.has = function (key) {
-                    return this._map.has(key);
-                };
-                TrackableCollection.prototype.remove = function (key) {
-                    var item = this._map.get(key);
-                    if (item.trackState == Caching.TrackState.Added)
-                        this._map.delete(key);
-                    else
-                        item.trackState = Caching.TrackState.Deleted;
-                };
-                return TrackableCollection;
-            }());
-            Caching.TrackableCollection = TrackableCollection;
-        })(Caching = IO.Caching || (IO.Caching = {}));
-    })(IO = Neo.IO || (Neo.IO = {}));
-})(Neo || (Neo = {}));
-var ThinNeo;
-(function (ThinNeo) {
-    var contract = (function () {
-        function contract() {
-            this.parameters = [{ "name": "parameter0", "type": "Signature" }];
-            this.deployed = false;
-        }
-        return contract;
-    }());
-    ThinNeo.contract = contract;
-    var nep6account = (function () {
-        function nep6account() {
-        }
-        nep6account.prototype.getPrivateKey = function (scrypt, password, callback) {
-            var _this = this;
-            var cb = function (i, r) {
-                if (i == "finish") {
-                    var bytes = r;
-                    var pkey = ThinNeo.Helper.GetPublicKeyFromPrivateKey(bytes);
-                    var address = ThinNeo.Helper.GetAddressFromPublicKey(pkey);
-                    if (address == _this.address) {
-                        callback(i, r);
-                    }
-                    else {
-                        callback("error", "checkerror");
-                    }
-                }
-                else {
-                    callback(i, r);
-                }
-            };
-            ThinNeo.Helper.GetPrivateKeyFromNep2(this.nep2key, password, scrypt.N, scrypt.r, scrypt.p, cb);
-        };
-        return nep6account;
-    }());
-    ThinNeo.nep6account = nep6account;
-    var nep6ScryptParameters = (function () {
-        function nep6ScryptParameters() {
-        }
-        return nep6ScryptParameters;
-    }());
-    ThinNeo.nep6ScryptParameters = nep6ScryptParameters;
-    var nep6wallet = (function () {
-        function nep6wallet() {
-        }
-        nep6wallet.prototype.fromJsonStr = function (jsonstr) {
-            var json = JSON.parse(jsonstr);
-            this.scrypt = new nep6ScryptParameters();
-            this.scrypt.N = json.scrypt.n;
-            this.scrypt.r = json.scrypt.r;
-            this.scrypt.p = json.scrypt.p;
-            this.accounts = [];
-            for (var i = 0; i < json.accounts.length; i++) {
-                var acc = json.accounts[i];
-                var localacc = new nep6account();
-                localacc.address = acc.address;
-                localacc.nep2key = acc.key;
-                localacc.contract = acc.contract;
-                if (localacc.contract == null || localacc.contract.script == null) {
-                    localacc.nep2key = null;
-                }
-                else {
-                    var ss = localacc.contract.script.hexToBytes();
-                    if (ss.length != 35 || ss[0] != 33 || ss[34] != 172) {
-                        localacc.nep2key = null;
-                    }
-                }
-                if (acc.key == undefined)
-                    localacc.nep2key = null;
-                this.accounts.push(localacc);
-            }
-        };
-        nep6wallet.prototype.toJson = function () {
-            var obj = {};
-            obj["name"] = null;
-            obj["version"] = "1.0";
-            obj["scrypt"] = {
-                "n": this.scrypt.N,
-                "r": this.scrypt.r,
-                "p": this.scrypt.p
-            };
-            var accounts = [];
-            for (var i = 0; i < this.accounts.length; i++) {
-                var acc = this.accounts[0];
-                var jsonacc = {};
-                jsonacc["address"] = acc.address;
-                jsonacc["label"] = null;
-                jsonacc["isDefault"] = false;
-                jsonacc["lock"] = false;
-                jsonacc["key"] = acc.nep2key;
-                jsonacc["extra"] = null;
-                jsonacc["contract"] = acc.contract;
-                accounts.push(jsonacc);
-            }
-            obj["accounts"] = accounts;
-            obj["extra"] = null;
-            return obj;
-        };
-        return nep6wallet;
-    }());
-    ThinNeo.nep6wallet = nep6wallet;
-})(ThinNeo || (ThinNeo = {}));
-var ThinNeo;
-(function (ThinNeo) {
-    var Base64 = (function () {
-        function Base64() {
-        }
-        Base64.init = function () {
-            if (Base64.binited)
-                return;
-            Base64.lookup = [];
-            Base64.revLookup = [];
-            for (var i = 0, len = Base64.code.length; i < len; ++i) {
-                Base64.lookup[i] = Base64.code[i];
-                Base64.revLookup[Base64.code.charCodeAt(i)] = i;
-            }
-            Base64.revLookup['-'.charCodeAt(0)] = 62;
-            Base64.revLookup['_'.charCodeAt(0)] = 63;
-            Base64.binited = true;
-        };
-        Base64.placeHoldersCount = function (b64) {
-            var len = b64.length;
-            if (len % 4 > 0) {
-                throw new Error('Invalid string. Length must be a multiple of 4');
-            }
-            return b64[len - 2] === '=' ? 2 : b64[len - 1] === '=' ? 1 : 0;
-        };
-        Base64.byteLength = function (b64) {
-            return (b64.length * 3 / 4) - Base64.placeHoldersCount(b64);
-        };
-        Base64.toByteArray = function (b64) {
-            Base64.init();
-            var i, l, tmp, placeHolders, arr;
-            var len = b64.length;
-            placeHolders = Base64.placeHoldersCount(b64);
-            arr = new Uint8Array((len * 3 / 4) - placeHolders);
-            l = placeHolders > 0 ? len - 4 : len;
-            var L = 0;
-            for (i = 0; i < l; i += 4) {
-                tmp = (Base64.revLookup[b64.charCodeAt(i)] << 18) | (Base64.revLookup[b64.charCodeAt(i + 1)] << 12) | (Base64.revLookup[b64.charCodeAt(i + 2)] << 6) | Base64.revLookup[b64.charCodeAt(i + 3)];
-                arr[L++] = (tmp >> 16) & 0xFF;
-                arr[L++] = (tmp >> 8) & 0xFF;
-                arr[L++] = tmp & 0xFF;
-            }
-            if (placeHolders === 2) {
-                tmp = (Base64.revLookup[b64.charCodeAt(i)] << 2) | (Base64.revLookup[b64.charCodeAt(i + 1)] >> 4);
-                arr[L++] = tmp & 0xFF;
-            }
-            else if (placeHolders === 1) {
-                tmp = (Base64.revLookup[b64.charCodeAt(i)] << 10) | (Base64.revLookup[b64.charCodeAt(i + 1)] << 4) | (Base64.revLookup[b64.charCodeAt(i + 2)] >> 2);
-                arr[L++] = (tmp >> 8) & 0xFF;
-                arr[L++] = tmp & 0xFF;
-            }
-            return arr;
-        };
-        Base64.tripletToBase64 = function (num) {
-            return Base64.lookup[num >> 18 & 0x3F] + Base64.lookup[num >> 12 & 0x3F] + Base64.lookup[num >> 6 & 0x3F] + Base64.lookup[num & 0x3F];
-        };
-        Base64.encodeChunk = function (uint8, start, end) {
-            var tmp;
-            var output = [];
-            for (var i = start; i < end; i += 3) {
-                tmp = (uint8[i] << 16) + (uint8[i + 1] << 8) + (uint8[i + 2]);
-                output.push(Base64.tripletToBase64(tmp));
-            }
-            return output.join('');
-        };
-        Base64.fromByteArray = function (uint8) {
-            Base64.init();
-            var tmp;
-            var len = uint8.length;
-            var extraBytes = len % 3;
-            var output = '';
-            var parts = [];
-            var maxChunkLength = 16383;
-            for (var i = 0, len2 = len - extraBytes; i < len2; i += maxChunkLength) {
-                parts.push(Base64.encodeChunk(uint8, i, (i + maxChunkLength) > len2 ? len2 : (i + maxChunkLength)));
-            }
-            if (extraBytes === 1) {
-                tmp = uint8[len - 1];
-                output += Base64.lookup[tmp >> 2];
-                output += Base64.lookup[(tmp << 4) & 0x3F];
-                output += '==';
-            }
-            else if (extraBytes === 2) {
-                tmp = (uint8[len - 2] << 8) + (uint8[len - 1]);
-                output += Base64.lookup[tmp >> 10];
-                output += Base64.lookup[(tmp >> 4) & 0x3F];
-                output += Base64.lookup[(tmp << 2) & 0x3F];
-                output += '=';
-            }
-            parts.push(output);
-            return parts.join('');
-        };
-        Base64.lookup = [];
-        Base64.revLookup = [];
-        Base64.code = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-        Base64.binited = false;
-        return Base64;
-    }());
-    ThinNeo.Base64 = Base64;
-})(ThinNeo || (ThinNeo = {}));
-var ThinNeo;
-(function (ThinNeo) {
-    var ScriptBuilder = (function () {
-        function ScriptBuilder() {
-            this.Offset = 0;
-            this.writer = [];
-        }
-        ScriptBuilder.prototype._WriteUint8 = function (num) {
-            this.writer.push(num);
-            this.Offset++;
-        };
-        ScriptBuilder.prototype._WriteUint16 = function (num) {
-            var buf = new Uint8Array(2);
-            var d = new DataView(buf.buffer, 0, 2);
-            d.setUint16(0, num, true);
-            this.writer.push(buf[0]);
-            this.writer.push(buf[1]);
-            this.Offset += 2;
-        };
-        ScriptBuilder.prototype._WriteUint32 = function (num) {
-            var buf = new Uint8Array(4);
-            var d = new DataView(buf.buffer, 0, 4);
-            d.setUint32(0, num, true);
-            this.writer.push(buf[0]);
-            this.writer.push(buf[1]);
-            this.writer.push(buf[2]);
-            this.writer.push(buf[3]);
-            this.Offset += 4;
-        };
-        ScriptBuilder.prototype._WriteUint8Array = function (nums) {
-            for (var i = 0; i < nums.length; i++)
-                this.writer.push(nums[i]);
-            this.Offset += nums.length;
-        };
-        ScriptBuilder.prototype._ConvertInt16ToBytes = function (num) {
-            var buf = new Uint8Array(2);
-            var d = new DataView(buf.buffer, 0, 2);
-            d.setInt16(0, num, true);
-            return buf;
-        };
-        ScriptBuilder.prototype.Emit = function (op, arg) {
-            if (arg === void 0) { arg = null; }
-            this._WriteUint8(op);
-            if (arg != null)
-                this._WriteUint8Array(arg);
-            return this;
-        };
-        ScriptBuilder.prototype.EmitAppCall = function (scriptHash, useTailCall) {
-            if (useTailCall === void 0) { useTailCall = false; }
-            var hash = null;
-            if (scriptHash instanceof Neo.Uint160) {
-                hash = new Uint8Array(scriptHash.bits.buffer);
-            }
-            else if (scriptHash.length != 20)
-                throw new Error("error scriptHash length");
-            else {
-                hash = scriptHash;
-            }
-            return this.Emit(useTailCall ? ThinNeo.OpCode.TAILCALL : ThinNeo.OpCode.APPCALL, hash);
-        };
-        ScriptBuilder.prototype.EmitJump = function (op, offset) {
-            if (op != ThinNeo.OpCode.JMP && op != ThinNeo.OpCode.JMPIF && op != ThinNeo.OpCode.JMPIFNOT && op != ThinNeo.OpCode.CALL)
-                throw new Error("ArgumentException");
-            return this.Emit(op, this._ConvertInt16ToBytes(offset));
-        };
-        ScriptBuilder.prototype.EmitPushNumber = function (number) {
-            var i32 = number.toInt32();
-            if (i32 == -1)
-                return this.Emit(ThinNeo.OpCode.PUSHM1);
-            if (i32 == 0)
-                return this.Emit(ThinNeo.OpCode.PUSH0);
-            if (i32 > 0 && i32 <= 16)
-                return this.Emit(ThinNeo.OpCode.PUSH1 - 1 + i32);
-            return this.EmitPushBytes(number.toUint8ArrayWithSign(true));
-        };
-        ScriptBuilder.prototype.EmitPushBool = function (data) {
-            return this.Emit(data ? ThinNeo.OpCode.PUSHT : ThinNeo.OpCode.PUSHF);
-        };
-        ScriptBuilder.prototype.EmitPushBytes = function (data) {
-            if (data == null)
-                throw new Error("ArgumentNullException");
-            if (data.length <= ThinNeo.OpCode.PUSHBYTES75) {
-                this._WriteUint8(data.length);
-                this._WriteUint8Array(data);
-            }
-            else if (data.length < 0x100) {
-                this.Emit(ThinNeo.OpCode.PUSHDATA1);
-                this._WriteUint8(data.length);
-                this._WriteUint8Array(data);
-            }
-            else if (data.length < 0x10000) {
-                this.Emit(ThinNeo.OpCode.PUSHDATA2);
-                this._WriteUint16(data.length);
-                this._WriteUint8Array(data);
-            }
-            else {
-                this.Emit(ThinNeo.OpCode.PUSHDATA4);
-                this._WriteUint32(data.length);
-                this._WriteUint8Array(data);
-            }
-            return this;
-        };
-        ScriptBuilder.prototype.EmitPushString = function (data) {
-            return this.EmitPushBytes(ThinNeo.Helper.String2Bytes(data));
-        };
-        ScriptBuilder.prototype.EmitSysCall = function (api) {
-            if (api == null)
-                throw new Error("ArgumentNullException");
-            var api_bytes = ThinNeo.Helper.String2Bytes(api);
-            if (api_bytes.length == 0 || api_bytes.length > 252)
-                throw new Error("ArgumentException");
-            var arg = new Uint8Array(api_bytes.length + 1);
-            arg[0] = api_bytes.length;
-            for (var i = 0; i < api_bytes.length; i++) {
-                arg[i + 1] = api_bytes[i];
-            }
-            return this.Emit(ThinNeo.OpCode.SYSCALL, arg);
-        };
-        ScriptBuilder.prototype.ToArray = function () {
-            var array = new Uint8Array(this.writer.length);
-            for (var i = 0; i < this.writer.length; i++) {
-                array[i] = this.writer[i];
-            }
-            return array;
-        };
-        ScriptBuilder.prototype.EmitParamJson = function (param) {
-            if (typeof param === "number") {
-                this.EmitPushNumber(new Neo.BigInteger(param));
-            }
-            else if (typeof param === "boolean") {
-                this.EmitPushBool(param);
-            }
-            else if (typeof param === "object") {
-                var list = param;
-                for (var i = list.length - 1; i >= 0; i--) {
-                    this.EmitParamJson(list[i]);
-                }
-                this.EmitPushNumber(new Neo.BigInteger(list.length));
-                this.Emit(ThinNeo.OpCode.PACK);
-            }
-            else if (typeof param === "string") {
-                var str = param;
-                if (str[0] != '(')
-                    throw new Error("must start with:(str) or (hex) or (hexrev) or (addr)or(int)");
-                if (str.indexOf("(string)") == 0) {
-                    this.EmitPushString(str.substr(8));
-                }
-                if (str.indexOf("(str)") == 0) {
-                    this.EmitPushString(str.substr(5));
-                }
-                else if (str.indexOf("(bytes)") == 0) {
-                    var hex = str.substr(7).hexToBytes();
-                    this.EmitPushBytes(hex);
-                }
-                else if (str.indexOf("([])") == 0) {
-                    var hex = str.substr(4).hexToBytes();
-                    this.EmitPushBytes(hex);
-                }
-                else if (str.indexOf("(address)") == 0) {
-                    var addr = (str.substr(9));
-                    var hex = ThinNeo.Helper.GetPublicKeyScriptHash_FromAddress(addr);
-                    this.EmitPushBytes(hex);
-                }
-                else if (str.indexOf("(addr)") == 0) {
-                    var addr = (str.substr(6));
-                    var hex = ThinNeo.Helper.GetPublicKeyScriptHash_FromAddress(addr);
-                    this.EmitPushBytes(hex);
-                }
-                else if (str.indexOf("(integer)") == 0) {
-                    var num = new Neo.BigInteger(str.substr(9));
-                    this.EmitPushNumber(num);
-                }
-                else if (str.indexOf("(int)") == 0) {
-                    var num = new Neo.BigInteger(str.substr(5));
-                    this.EmitPushNumber(num);
-                }
-                else if (str.indexOf("(hexinteger)") == 0) {
-                    var hex = str.substr(12).hexToBytes();
-                    this.EmitPushBytes(hex.reverse());
-                }
-                else if (str.indexOf("(hexint)") == 0) {
-                    var hex = str.substr(8).hexToBytes();
-                    this.EmitPushBytes(hex.reverse());
-                }
-                else if (str.indexOf("(hex)") == 0) {
-                    var hex = str.substr(5).hexToBytes();
-                    this.EmitPushBytes(hex.reverse());
-                }
-                else if (str.indexOf("(int256)") == 0 || str.indexOf("(hex256)") == 0) {
-                    var hex = str.substr(8).hexToBytes();
-                    if (hex.length != 32)
-                        throw new Error("not a int256");
-                    this.EmitPushBytes(hex.reverse());
-                }
-                else if (str.indexOf("(int160)") == 0 || str.indexOf("(hex160)") == 0) {
-                    var hex = str.substr(8).hexToBytes();
-                    if (hex.length != 20)
-                        throw new Error("not a int160");
-                    this.EmitPushBytes(hex.reverse());
-                }
-                else
-                    throw new Error("must start with:(str) or (hex) or (hexbig) or (addr) or(int)");
-            }
-            else {
-                throw new Error("error type:" + typeof param);
-            }
-            return this;
-        };
-        return ScriptBuilder;
-    }());
-    ThinNeo.ScriptBuilder = ScriptBuilder;
-})(ThinNeo || (ThinNeo = {}));
-var ThinNeo;
-(function (ThinNeo) {
-    var scrypt_loaded = false;
-    var Helper = (function () {
-        function Helper() {
-        }
-        Helper.GetPrivateKeyFromWIF = function (wif) {
-            if (wif == null)
-                throw new Error("null wif");
-            var data = Neo.Cryptography.Base58.decode(wif);
-            if (data.length != 38 || data[0] != 0x80 || data[33] != 0x01)
-                throw new Error("wif length or tag is error");
-            var sum = data.subarray(data.length - 4, data.length);
-            var realdata = data.subarray(0, data.length - 4);
-            var _checksum = Neo.Cryptography.Sha256.computeHash(realdata);
-            var checksum = new Uint8Array(Neo.Cryptography.Sha256.computeHash(_checksum));
-            var sumcalc = checksum.subarray(0, 4);
-            for (var i = 0; i < 4; i++) {
-                if (sum[i] != sumcalc[i])
-                    throw new Error("the sum is not match.");
-            }
-            var privateKey = data.subarray(1, 1 + 32);
-            return privateKey;
-        };
-        Helper.GetWifFromPrivateKey = function (prikey) {
-            var data = new Uint8Array(38);
-            data[0] = 0x80;
-            data[33] = 0x01;
-            for (var i = 0; i < 32; i++) {
-                data[i + 1] = prikey[i];
-            }
-            var realdata = data.subarray(0, data.length - 4);
-            var _checksum = Neo.Cryptography.Sha256.computeHash(realdata);
-            var checksum = new Uint8Array(Neo.Cryptography.Sha256.computeHash(_checksum));
-            for (var i = 0; i < 4; i++) {
-                data[34 + i] = checksum[i];
-            }
-            var wif = Neo.Cryptography.Base58.encode(data);
-            return wif;
-        };
-        Helper.GetPublicKeyFromPrivateKey = function (privateKey) {
-            var pkey = Neo.Cryptography.ECPoint.multiply(Neo.Cryptography.ECCurve.secp256r1.G, privateKey);
-            return pkey.encodePoint(true);
-        };
-        Helper.Hash160 = function (data) {
-            var hash1 = Neo.Cryptography.Sha256.computeHash(data);
-            var hash2 = Neo.Cryptography.RIPEMD160.computeHash(hash1);
-            return new Uint8Array(hash2);
-        };
-        Helper.GetAddressCheckScriptFromPublicKey = function (publicKey) {
-            var script = new Uint8Array(publicKey.length + 2);
-            script[0] = publicKey.length;
-            for (var i = 0; i < publicKey.length; i++) {
-                script[i + 1] = publicKey[i];
-            }
-            ;
-            script[script.length - 1] = 172;
-            return script;
-        };
-        Helper.GetPublicKeyScriptHashFromPublicKey = function (publicKey) {
-            var script = Helper.GetAddressCheckScriptFromPublicKey(publicKey);
-            var scripthash = Neo.Cryptography.Sha256.computeHash(script);
-            scripthash = Neo.Cryptography.RIPEMD160.computeHash(scripthash);
-            return new Uint8Array(scripthash);
-        };
-        Helper.GetScriptHashFromScript = function (script) {
-            var scripthash = Neo.Cryptography.Sha256.computeHash(script);
-            scripthash = Neo.Cryptography.RIPEMD160.computeHash(scripthash);
-            return new Uint8Array(scripthash);
-        };
-        Helper.GetAddressFromScriptHash = function (scripthash) {
-            var script_hash;
-            if (scripthash instanceof Neo.Uint160) {
-                script_hash = new Uint8Array(scripthash.bits.buffer);
-            }
-            else {
-                script_hash = scripthash;
-            }
-            var data = new Uint8Array(script_hash.length + 1);
-            data[0] = 0x17;
-            for (var i = 0; i < script_hash.length; i++) {
-                data[i + 1] = script_hash[i];
-            }
-            var hash = Neo.Cryptography.Sha256.computeHash(data);
-            hash = Neo.Cryptography.Sha256.computeHash(hash);
-            var hashu8 = new Uint8Array(hash, 0, 4);
-            var alldata = new Uint8Array(data.length + 4);
-            for (var i = 0; i < data.length; i++) {
-                alldata[i] = data[i];
-            }
-            for (var i = 0; i < 4; i++) {
-                alldata[data.length + i] = hashu8[i];
-            }
-            return Neo.Cryptography.Base58.encode(alldata);
-        };
-        Helper.GetAddressFromPublicKey = function (publicKey) {
-            var scripthash = Helper.GetPublicKeyScriptHashFromPublicKey(publicKey);
-            return Helper.GetAddressFromScriptHash(scripthash);
-        };
-        Helper.GetPublicKeyScriptHash_FromAddress = function (address) {
-            var array = Neo.Cryptography.Base58.decode(address);
-            var salt = array.subarray(0, 1);
-            var hash = array.subarray(1, 1 + 20);
-            var check = array.subarray(21, 21 + 4);
-            var checkdata = array.subarray(0, 21);
-            var hashd = Neo.Cryptography.Sha256.computeHash(checkdata);
-            hashd = Neo.Cryptography.Sha256.computeHash(hashd);
-            var hashd = hashd.slice(0, 4);
-            var checked = new Uint8Array(hashd);
-            for (var i = 0; i < 4; i++) {
-                if (checked[i] != check[i]) {
-                    throw new Error("the sum is not match.");
-                }
-            }
-            return hash.clone();
-        };
-        Helper.Sign = function (message, privateKey) {
-            var PublicKey = Neo.Cryptography.ECPoint.multiply(Neo.Cryptography.ECCurve.secp256r1.G, privateKey);
-            var pubkey = PublicKey.encodePoint(false).subarray(1, 64);
-            var key = new Neo.Cryptography.ECDsaCryptoKey(PublicKey, privateKey);
-            var ecdsa = new Neo.Cryptography.ECDsa(key);
-            {
-                return new Uint8Array(ecdsa.sign(message));
-            }
-        };
-        Helper.VerifySignature = function (message, signature, pubkey) {
-            var PublicKey = Neo.Cryptography.ECPoint.decodePoint(pubkey, Neo.Cryptography.ECCurve.secp256r1);
-            var usepk = PublicKey.encodePoint(false).subarray(1, 64);
-            var key = new Neo.Cryptography.ECDsaCryptoKey(PublicKey);
-            var ecdsa = new Neo.Cryptography.ECDsa(key);
-            {
-                return ecdsa.verify(message, signature);
-            }
-        };
-        Helper.String2Bytes = function (str) {
-            var back = [];
-            var byteSize = 0;
-            for (var i = 0; i < str.length; i++) {
-                var code = str.charCodeAt(i);
-                if (0x00 <= code && code <= 0x7f) {
-                    byteSize += 1;
-                    back.push(code);
-                }
-                else if (0x80 <= code && code <= 0x7ff) {
-                    byteSize += 2;
-                    back.push((192 | (31 & (code >> 6))));
-                    back.push((128 | (63 & code)));
-                }
-                else if ((0x800 <= code && code <= 0xd7ff)
-                    || (0xe000 <= code && code <= 0xffff)) {
-                    byteSize += 3;
-                    back.push((224 | (15 & (code >> 12))));
-                    back.push((128 | (63 & (code >> 6))));
-                    back.push((128 | (63 & code)));
-                }
-            }
-            var uarr = new Uint8Array(back.length);
-            for (i = 0; i < back.length; i++) {
-                uarr[i] = back[i] & 0xff;
-            }
-            return uarr;
-        };
-        Helper.Bytes2String = function (_arr) {
-            var UTF = '';
-            for (var i = 0; i < _arr.length; i++) {
-                var one = _arr[i].toString(2), v = one.match(/^1+?(?=0)/);
-                if (v && one.length == 8) {
-                    var bytesLength = v[0].length;
-                    var store = _arr[i].toString(2).slice(7 - bytesLength);
-                    for (var st = 1; st < bytesLength; st++) {
-                        store += _arr[st + i].toString(2).slice(2);
-                    }
-                    UTF += String.fromCharCode(parseInt(store, 2));
-                    i += bytesLength - 1;
-                }
-                else {
-                    UTF += String.fromCharCode(_arr[i]);
-                }
-            }
-            return UTF;
-        };
-        Helper.Aes256Encrypt = function (src, key) {
-            var srcs = CryptoJS.enc.Utf8.parse(src);
-            var keys = CryptoJS.enc.Utf8.parse(key);
-            var encryptedkey = CryptoJS.AES.encrypt(srcs, keys, {
-                mode: CryptoJS.mode.ECB,
-                padding: CryptoJS.pad.NoPadding
-            });
-            return encryptedkey.ciphertext.toString();
-        };
-        Helper.Aes256Encrypt_u8 = function (src, key) {
-            var srcs = CryptoJS.enc.Utf8.parse("1234123412341234");
-            srcs.sigBytes = src.length;
-            srcs.words = new Array(src.length / 4);
-            for (var i = 0; i < src.length / 4; i++) {
-                srcs.words[i] = src[i * 4 + 3] + src[i * 4 + 2] * 256 + src[i * 4 + 1] * 256 * 256 + src[i * 4 + 0] * 256 * 256 * 256;
-            }
-            var keys = CryptoJS.enc.Utf8.parse("1234123412341234");
-            keys.sigBytes = key.length;
-            keys.words = new Array(key.length / 4);
-            for (var i = 0; i < key.length / 4; i++) {
-                keys.words[i] = key[i * 4 + 3] + key[i * 4 + 2] * 256 + key[i * 4 + 1] * 256 * 256 + key[i * 4 + 0] * 256 * 256 * 256;
-            }
-            var encryptedkey = CryptoJS.AES.encrypt(srcs, keys, {
-                mode: CryptoJS.mode.ECB,
-                padding: CryptoJS.pad.NoPadding
-            });
-            var str = encryptedkey.ciphertext.toString();
-            return str.hexToBytes();
-        };
-        Helper.Aes256Decrypt_u8 = function (encryptedkey, key) {
-            var keys = CryptoJS.enc.Utf8.parse("1234123412341234");
-            keys.sigBytes = key.length;
-            keys.words = new Array(key.length / 4);
-            for (var i = 0; i < key.length / 4; i++) {
-                keys.words[i] = key[i * 4 + 3] + key[i * 4 + 2] * 256 + key[i * 4 + 1] * 256 * 256 + key[i * 4 + 0] * 256 * 256 * 256;
-            }
-            var base64key = ThinNeo.Base64.fromByteArray(encryptedkey);
-            var srcs = CryptoJS.AES.decrypt(base64key, keys, {
-                mode: CryptoJS.mode.ECB,
-                padding: CryptoJS.pad.NoPadding
-            });
-            var str = srcs.toString();
-            return str.hexToBytes();
-        };
-        Helper.GetNep2FromPrivateKey = function (prikey, passphrase, n, r, p, callback) {
-            if (n === void 0) { n = 16384; }
-            if (r === void 0) { r = 8; }
-            if (p === void 0) { p = 8; }
-            var pp = scrypt.getAvailableMod();
-            scrypt.setResPath('./static/js/asset');
-            var addresshash = null;
-            var ready = function () {
-                var param = {
-                    N: n,
-                    r: r,
-                    P: p
-                };
-                var opt = {
-                    maxPassLen: 32,
-                    maxSaltLen: 32,
-                    maxDkLen: 64,
-                    maxThread: 4
-                };
-                try {
-                    scrypt.config(param, opt);
-                }
-                catch (err) {
-                    console.warn('config err: ', err);
-                }
-            };
-            scrypt.onload = function () {
-                console.log("scrypt.onload");
-                scrypt_loaded = true;
-                ready();
-            };
-            scrypt.onerror = function (err) {
-                console.warn('scrypt err:', err);
-                callback("error", err);
-            };
-            scrypt.oncomplete = function (dk) {
-                console.log('done', scrypt.binToHex(dk));
-                var u8dk = new Uint8Array(dk);
-                var derivedhalf1 = u8dk.subarray(0, 32);
-                var derivedhalf2 = u8dk.subarray(32, 64);
-                var u8xor = new Uint8Array(32);
-                for (var i = 0; i < 32; i++) {
-                    u8xor[i] = prikey[i] ^ derivedhalf1[i];
-                }
-                var encryptedkey = Helper.Aes256Encrypt_u8(u8xor, derivedhalf2);
-                var buffer = new Uint8Array(39);
-                buffer[0] = 0x01;
-                buffer[1] = 0x42;
-                buffer[2] = 0xe0;
-                for (var i = 3; i < 3 + 4; i++) {
-                    buffer[i] = addresshash[i - 3];
-                }
-                for (var i = 7; i < 32 + 7; i++) {
-                    buffer[i] = encryptedkey[i - 7];
-                }
-                var b1 = Neo.Cryptography.Sha256.computeHash(buffer);
-                b1 = Neo.Cryptography.Sha256.computeHash(b1);
-                var u8hash = new Uint8Array(b1);
-                var outbuf = new Uint8Array(39 + 4);
-                for (var i = 0; i < 39; i++) {
-                    outbuf[i] = buffer[i];
-                }
-                for (var i = 39; i < 39 + 4; i++) {
-                    outbuf[i] = u8hash[i - 39];
-                }
-                var base58str = Neo.Cryptography.Base58.encode(outbuf);
-                callback("finish", base58str);
-            };
-            scrypt.onprogress = function (percent) {
-                console.log('onprogress');
-            };
-            scrypt.onready = function () {
-                var pubkey = Helper.GetPublicKeyFromPrivateKey(prikey);
-                var script_hash = Helper.GetPublicKeyScriptHashFromPublicKey(pubkey);
-                var address = Helper.GetAddressFromScriptHash(script_hash);
-                var addrbin = scrypt.strToBin(address);
-                var b1 = Neo.Cryptography.Sha256.computeHash(addrbin);
-                b1 = Neo.Cryptography.Sha256.computeHash(b1);
-                var b2 = new Uint8Array(b1);
-                addresshash = b2.subarray(0, 4);
-                var passbin = scrypt.strToBin(passphrase);
-                scrypt.hash(passbin, addresshash, 64);
-            };
-            if (scrypt_loaded == false) {
-                scrypt.load("asmjs");
-            }
-            else {
-                ready();
-            }
-            return;
-        };
-        Helper.GetPrivateKeyFromNep2 = function (nep2, passphrase, n, r, p, callback) {
-            if (n === void 0) { n = 16384; }
-            if (r === void 0) { r = 8; }
-            if (p === void 0) { p = 8; }
-            var data = Neo.Cryptography.Base58.decode(nep2);
-            if (data.length != 39 + 4) {
-                callback("error", "data.length error");
-                return;
-            }
-            if (data[0] != 0x01 || data[1] != 0x42 || data[2] != 0xe0) {
-                callback("error", "dataheader error");
-                return;
-            }
-            var hash = data.subarray(39, 39 + 4);
-            var buffer = data.subarray(0, 39);
-            var b1 = Neo.Cryptography.Sha256.computeHash(buffer);
-            b1 = Neo.Cryptography.Sha256.computeHash(b1);
-            var u8hash = new Uint8Array(b1);
-            for (var i = 0; i < 4; i++) {
-                if (u8hash[i] != hash[i]) {
-                    callback("error", "data hash error");
-                    return;
-                }
-            }
-            var addresshash = buffer.subarray(3, 3 + 4);
-            var encryptedkey = buffer.subarray(7, 7 + 32);
-            var pp = scrypt.getAvailableMod();
-            scrypt.setResPath('./static/js/asset');
-            var ready = function () {
-                var param = {
-                    N: n,
-                    r: r,
-                    P: p
-                };
-                var opt = {
-                    maxPassLen: 32,
-                    maxSaltLen: 32,
-                    maxDkLen: 64,
-                    maxThread: 4
-                };
-                try {
-                    scrypt.config(param, opt);
-                }
-                catch (err) {
-                    console.warn('config err: ', err);
-                }
-            };
-            scrypt.onload = function () {
-                console.log("scrypt.onload");
-                scrypt_loaded = true;
-                ready();
-            };
-            scrypt.oncomplete = function (dk) {
-                console.log('done', scrypt.binToHex(dk));
-                var u8dk = new Uint8Array(dk);
-                var derivedhalf1 = u8dk.subarray(0, 32);
-                var derivedhalf2 = u8dk.subarray(32, 64);
-                var u8xor = Helper.Aes256Decrypt_u8(encryptedkey, derivedhalf2);
-                var prikey = new Uint8Array(u8xor.length);
-                for (var i = 0; i < 32; i++) {
-                    prikey[i] = u8xor[i] ^ derivedhalf1[i];
-                }
-                var pubkey = Helper.GetPublicKeyFromPrivateKey(prikey);
-                var script_hash = Helper.GetPublicKeyScriptHashFromPublicKey(pubkey);
-                var address = Helper.GetAddressFromScriptHash(script_hash);
-                var addrbin = scrypt.strToBin(address);
-                var b1 = Neo.Cryptography.Sha256.computeHash(addrbin);
-                b1 = Neo.Cryptography.Sha256.computeHash(b1);
-                var b2 = new Uint8Array(b1);
-                var addresshashgot = b2.subarray(0, 4);
-                for (var i = 0; i < 4; i++) {
-                    if (addresshash[i] != b2[i]) {
-                        callback("error", "nep2 hash not match.");
-                        return;
-                    }
-                }
-                callback("finish", prikey);
-            };
-            scrypt.onerror = function (err) {
-                console.warn('scrypt err:', err);
-                callback("error", err);
-            };
-            scrypt.onprogress = function (percent) {
-                console.log('onprogress');
-            };
-            scrypt.onready = function () {
-                var passbin = scrypt.strToBin(passphrase);
-                scrypt.hash(passbin, addresshash, 64);
-            };
-            if (scrypt_loaded == false) {
-                scrypt.load("asmjs");
-            }
-            else {
-                ready();
-            }
-        };
-        return Helper;
-    }());
-    ThinNeo.Helper = Helper;
-})(ThinNeo || (ThinNeo = {}));
-var ThinNeo;
-(function (ThinNeo) {
-    var TransactionType;
-    (function (TransactionType) {
-        TransactionType[TransactionType["MinerTransaction"] = 0] = "MinerTransaction";
-        TransactionType[TransactionType["IssueTransaction"] = 1] = "IssueTransaction";
-        TransactionType[TransactionType["ClaimTransaction"] = 2] = "ClaimTransaction";
-        TransactionType[TransactionType["EnrollmentTransaction"] = 32] = "EnrollmentTransaction";
-        TransactionType[TransactionType["RegisterTransaction"] = 64] = "RegisterTransaction";
-        TransactionType[TransactionType["ContractTransaction"] = 128] = "ContractTransaction";
-        TransactionType[TransactionType["PublishTransaction"] = 208] = "PublishTransaction";
-        TransactionType[TransactionType["InvocationTransaction"] = 209] = "InvocationTransaction";
-    })(TransactionType = ThinNeo.TransactionType || (ThinNeo.TransactionType = {}));
-    var TransactionAttributeUsage;
-    (function (TransactionAttributeUsage) {
-        TransactionAttributeUsage[TransactionAttributeUsage["ContractHash"] = 0] = "ContractHash";
-        TransactionAttributeUsage[TransactionAttributeUsage["ECDH02"] = 2] = "ECDH02";
-        TransactionAttributeUsage[TransactionAttributeUsage["ECDH03"] = 3] = "ECDH03";
-        TransactionAttributeUsage[TransactionAttributeUsage["Script"] = 32] = "Script";
-        TransactionAttributeUsage[TransactionAttributeUsage["Vote"] = 48] = "Vote";
-        TransactionAttributeUsage[TransactionAttributeUsage["DescriptionUrl"] = 129] = "DescriptionUrl";
-        TransactionAttributeUsage[TransactionAttributeUsage["Description"] = 144] = "Description";
-        TransactionAttributeUsage[TransactionAttributeUsage["Hash1"] = 161] = "Hash1";
-        TransactionAttributeUsage[TransactionAttributeUsage["Hash2"] = 162] = "Hash2";
-        TransactionAttributeUsage[TransactionAttributeUsage["Hash3"] = 163] = "Hash3";
-        TransactionAttributeUsage[TransactionAttributeUsage["Hash4"] = 164] = "Hash4";
-        TransactionAttributeUsage[TransactionAttributeUsage["Hash5"] = 165] = "Hash5";
-        TransactionAttributeUsage[TransactionAttributeUsage["Hash6"] = 166] = "Hash6";
-        TransactionAttributeUsage[TransactionAttributeUsage["Hash7"] = 167] = "Hash7";
-        TransactionAttributeUsage[TransactionAttributeUsage["Hash8"] = 168] = "Hash8";
-        TransactionAttributeUsage[TransactionAttributeUsage["Hash9"] = 169] = "Hash9";
-        TransactionAttributeUsage[TransactionAttributeUsage["Hash10"] = 170] = "Hash10";
-        TransactionAttributeUsage[TransactionAttributeUsage["Hash11"] = 171] = "Hash11";
-        TransactionAttributeUsage[TransactionAttributeUsage["Hash12"] = 172] = "Hash12";
-        TransactionAttributeUsage[TransactionAttributeUsage["Hash13"] = 173] = "Hash13";
-        TransactionAttributeUsage[TransactionAttributeUsage["Hash14"] = 174] = "Hash14";
-        TransactionAttributeUsage[TransactionAttributeUsage["Hash15"] = 175] = "Hash15";
-        TransactionAttributeUsage[TransactionAttributeUsage["Remark"] = 240] = "Remark";
-        TransactionAttributeUsage[TransactionAttributeUsage["Remark1"] = 241] = "Remark1";
-        TransactionAttributeUsage[TransactionAttributeUsage["Remark2"] = 242] = "Remark2";
-        TransactionAttributeUsage[TransactionAttributeUsage["Remark3"] = 243] = "Remark3";
-        TransactionAttributeUsage[TransactionAttributeUsage["Remark4"] = 244] = "Remark4";
-        TransactionAttributeUsage[TransactionAttributeUsage["Remark5"] = 245] = "Remark5";
-        TransactionAttributeUsage[TransactionAttributeUsage["Remark6"] = 246] = "Remark6";
-        TransactionAttributeUsage[TransactionAttributeUsage["Remark7"] = 247] = "Remark7";
-        TransactionAttributeUsage[TransactionAttributeUsage["Remark8"] = 248] = "Remark8";
-        TransactionAttributeUsage[TransactionAttributeUsage["Remark9"] = 249] = "Remark9";
-        TransactionAttributeUsage[TransactionAttributeUsage["Remark10"] = 250] = "Remark10";
-        TransactionAttributeUsage[TransactionAttributeUsage["Remark11"] = 251] = "Remark11";
-        TransactionAttributeUsage[TransactionAttributeUsage["Remark12"] = 252] = "Remark12";
-        TransactionAttributeUsage[TransactionAttributeUsage["Remark13"] = 253] = "Remark13";
-        TransactionAttributeUsage[TransactionAttributeUsage["Remark14"] = 254] = "Remark14";
-        TransactionAttributeUsage[TransactionAttributeUsage["Remark15"] = 255] = "Remark15";
-    })(TransactionAttributeUsage = ThinNeo.TransactionAttributeUsage || (ThinNeo.TransactionAttributeUsage = {}));
-    var Attribute = (function () {
-        function Attribute() {
-        }
-        return Attribute;
-    }());
-    ThinNeo.Attribute = Attribute;
-    var TransactionOutput = (function () {
-        function TransactionOutput() {
-        }
-        return TransactionOutput;
-    }());
-    ThinNeo.TransactionOutput = TransactionOutput;
-    var TransactionInput = (function () {
-        function TransactionInput() {
-        }
-        return TransactionInput;
-    }());
-    ThinNeo.TransactionInput = TransactionInput;
-    var Witness = (function () {
-        function Witness() {
-        }
-        Object.defineProperty(Witness.prototype, "Address", {
-            get: function () {
-                var hash = ThinNeo.Helper.GetScriptHashFromScript(this.VerificationScript);
-                return ThinNeo.Helper.GetAddressFromScriptHash(hash);
-            },
-            enumerable: true,
-            configurable: true
-        });
-        return Witness;
-    }());
-    ThinNeo.Witness = Witness;
-    var InvokeTransData = (function () {
-        function InvokeTransData() {
-        }
-        InvokeTransData.prototype.Serialize = function (trans, writer) {
-            writer.writeVarBytes(this.script.buffer);
-            if (trans.version >= 1) {
-                writer.writeUint64(this.gas.getData());
-            }
-        };
-        InvokeTransData.prototype.Deserialize = function (trans, reader) {
-            var buf = reader.readVarBytes(10000000);
-            this.script = new Uint8Array(buf, 0, buf.byteLength);
-            if (trans.version >= 1) {
-                this.gas = new Neo.Fixed8(reader.readUint64());
-            }
-        };
-        return InvokeTransData;
-    }());
-    ThinNeo.InvokeTransData = InvokeTransData;
-    var ClaimTransData = (function () {
-        function ClaimTransData() {
-        }
-        ClaimTransData.prototype.Serialize = function (trans, writer) {
-            writer.writeVarInt(this.claims.length);
-            for (var i = 0; i < this.claims.length; i++) {
-                writer.write(this.claims[i].hash, 0, 32);
-                writer.writeUint16(this.claims[i].index);
-            }
-        };
-        ClaimTransData.prototype.Deserialize = function (trans, reader) {
-            var countClaims = reader.readVarInt();
-            this.claims = [];
-            for (var i = 0; i < countClaims; i++) {
-                this.claims.push(new TransactionInput());
-                var arr = reader.readBytes(32);
-                this.claims[i].hash = new Uint8Array(arr, 0, arr.byteLength);
-                this.claims[i].index = reader.readUint16();
-            }
-        };
-        return ClaimTransData;
-    }());
-    ThinNeo.ClaimTransData = ClaimTransData;
-    var MinerTransData = (function () {
-        function MinerTransData() {
-        }
-        MinerTransData.prototype.Serialize = function (trans, writer) {
-            writer.writeUint32(this.nonce);
-        };
-        MinerTransData.prototype.Deserialize = function (trans, reader) {
-            this.nonce = reader.readUint32();
-        };
-        return MinerTransData;
-    }());
-    ThinNeo.MinerTransData = MinerTransData;
-    var Transaction = (function () {
-        function Transaction() {
-        }
-        Transaction.prototype.SerializeUnsigned = function (writer) {
-            writer.writeByte(this.type);
-            writer.writeByte(this.version);
-            if (this.type == TransactionType.ContractTransaction ||
-                this.type == TransactionType.IssueTransaction) {
-            }
-            else if (this.type == TransactionType.InvocationTransaction) {
-                this.extdata.Serialize(this, writer);
-            }
-            else if (this.type == TransactionType.ClaimTransaction) {
-                this.extdata.Serialize(this, writer);
-            }
-            else if (this.type == TransactionType.MinerTransaction) {
-                this.extdata.Serialize(this, writer);
-            }
-            else {
-                throw new Error("未编写针对这个交易类型的代码");
-            }
-            var countAttributes = this.attributes.length;
-            writer.writeVarInt(countAttributes);
-            for (var i = 0; i < countAttributes; i++) {
-                var attributeData = this.attributes[i].data;
-                var Usage = this.attributes[i].usage;
-                writer.writeByte(Usage);
-                if (Usage == TransactionAttributeUsage.ContractHash || Usage == TransactionAttributeUsage.Vote || (Usage >= TransactionAttributeUsage.Hash1 && Usage <= TransactionAttributeUsage.Hash15)) {
-                    writer.write(attributeData.buffer, 0, 32);
-                }
-                else if (Usage == TransactionAttributeUsage.ECDH02 || Usage == TransactionAttributeUsage.ECDH03) {
-                    writer.write(attributeData.buffer, 1, 32);
-                }
-                else if (Usage == TransactionAttributeUsage.Script) {
-                    writer.write(attributeData.buffer, 0, 20);
-                }
-                else if (Usage == TransactionAttributeUsage.DescriptionUrl) {
-                    var len = attributeData.length;
-                    writer.writeByte(len);
-                    writer.write(attributeData.buffer, 0, len);
-                }
-                else if (Usage == TransactionAttributeUsage.Description || Usage >= TransactionAttributeUsage.Remark) {
-                    var len = attributeData.length;
-                    writer.writeVarInt(len);
-                    writer.write(attributeData.buffer, 0, len);
-                }
-                else
-                    throw new Error();
-            }
-            var countInputs = this.inputs.length;
-            writer.writeVarInt(countInputs);
-            for (var i = 0; i < countInputs; i++) {
-                writer.write(this.inputs[i].hash, 0, 32);
-                writer.writeUint16(this.inputs[i].index);
-            }
-            var countOutputs = this.outputs.length;
-            writer.writeVarInt(countOutputs);
-            for (var i = 0; i < countOutputs; i++) {
-                var item = this.outputs[i];
-                writer.write(item.assetId.buffer, 0, 32);
-                writer.writeUint64(item.value.getData());
-                writer.write(item.toAddress.buffer, 0, 20);
-            }
-        };
-        Transaction.prototype.Serialize = function (writer) {
-            this.SerializeUnsigned(writer);
-            var witnesscount = this.witnesses.length;
-            writer.writeVarInt(witnesscount);
-            for (var i = 0; i < witnesscount; i++) {
-                var _witness = this.witnesses[i];
-                writer.writeVarBytes(_witness.InvocationScript.buffer);
-                writer.writeVarBytes(_witness.VerificationScript.buffer);
-            }
-        };
-        Transaction.prototype.DeserializeUnsigned = function (ms) {
-            this.type = ms.readByte();
-            this.version = ms.readByte();
-            if (this.type == TransactionType.ContractTransaction
-                || this.type == TransactionType.IssueTransaction) {
-                this.extdata = null;
-            }
-            else if (this.type == TransactionType.InvocationTransaction) {
-                this.extdata = new InvokeTransData();
-            }
-            else if (this.type == TransactionType.ClaimTransaction) {
-                this.extdata = new ClaimTransData();
-            }
-            else if (this.type == TransactionType.MinerTransaction) {
-                this.extdata = new MinerTransData();
-            }
-            else {
-                throw new Error("未编写针对这个交易类型的代码");
-            }
-            if (this.extdata != null) {
-                this.extdata.Deserialize(this, ms);
-            }
-            var countAttributes = ms.readVarInt();
-            this.attributes = [];
-            for (var i = 0; i < countAttributes; i++) {
-                var attributeData = null;
-                var Usage = ms.readByte();
-                if (Usage == TransactionAttributeUsage.ContractHash || Usage == TransactionAttributeUsage.Vote || (Usage >= TransactionAttributeUsage.Hash1 && Usage <= TransactionAttributeUsage.Hash15)) {
-                    var arr = ms.readBytes(32);
-                    attributeData = new Uint8Array(arr, 0, arr.byteLength);
-                }
-                else if (Usage == TransactionAttributeUsage.ECDH02 || Usage == TransactionAttributeUsage.ECDH03) {
-                    var arr = ms.readBytes(32);
-                    var data = new Uint8Array(arr, 0, arr.byteLength);
-                    attributeData = new Uint8Array(33);
-                    attributeData[0] = Usage;
-                    for (var i = 0; i < 32; i++) {
-                        attributeData[i + 1] = data[i];
-                    }
-                }
-                else if (Usage == TransactionAttributeUsage.Script) {
-                    var arr = ms.readBytes(20);
-                    attributeData = new Uint8Array(arr, 0, arr.byteLength);
-                }
-                else if (Usage == TransactionAttributeUsage.DescriptionUrl) {
-                    var len = ms.readByte();
-                    var arr = ms.readBytes(len);
-                    attributeData = new Uint8Array(arr, 0, arr.byteLength);
-                }
-                else if (Usage == TransactionAttributeUsage.Description || Usage >= TransactionAttributeUsage.Remark) {
-                    var len = ms.readVarInt(65535);
-                    var arr = ms.readBytes(len);
-                    attributeData = new Uint8Array(arr, 0, arr.byteLength);
-                }
-                else
-                    throw new Error();
-                var attr = new Attribute();
-                attr.usage = Usage;
-                attr.data = attributeData;
-                this.attributes.push(attr);
-            }
-            var countInputs = ms.readVarInt();
-            this.inputs = [];
-            for (var i = 0; i < countInputs; i++) {
-                this.inputs.push(new TransactionInput());
-                var arr = ms.readBytes(32);
-                this.inputs[i].hash = new Uint8Array(arr, 0, arr.byteLength);
-                this.inputs[i].index = ms.readUint16();
-            }
-            var countOutputs = ms.readVarInt();
-            this.outputs = [];
-            for (var i = 0; i < countOutputs; i++) {
-                this.outputs.push(new TransactionOutput());
-                var outp = this.outputs[i];
-                var arr = ms.readBytes(32);
-                var assetid = new Uint8Array(arr, 0, arr.byteLength);
-                var value = new Neo.Fixed8(ms.readUint64());
-                var arr = ms.readBytes(20);
-                var scripthash = new Uint8Array(arr, 0, arr.byteLength);
-                outp.assetId = assetid;
-                outp.value = value;
-                outp.toAddress = scripthash;
-                this.outputs[i] = outp;
-            }
-        };
-        Transaction.prototype.Deserialize = function (ms) {
-            this.DeserializeUnsigned(ms);
-            if (ms.canRead() > 0) {
-                var witnesscount = ms.readVarInt();
-                this.witnesses = [];
-                for (var i = 0; i < witnesscount; i++) {
-                    this.witnesses.push(new Witness());
-                    this.witnesses[i].InvocationScript = new Uint8Array(ms.readVarBytes()).clone();
-                    this.witnesses[i].VerificationScript = new Uint8Array(ms.readVarBytes()).clone();
-                }
-            }
-        };
-        Transaction.prototype.GetMessage = function () {
-            var ms = new Neo.IO.MemoryStream();
-            var writer = new Neo.IO.BinaryWriter(ms);
-            this.SerializeUnsigned(writer);
-            var arr = ms.toArray();
-            var msg = new Uint8Array(arr, 0, arr.byteLength);
-            return msg;
-        };
-        Transaction.prototype.GetRawData = function () {
-            var ms = new Neo.IO.MemoryStream();
-            var writer = new Neo.IO.BinaryWriter(ms);
-            this.Serialize(writer);
-            var arr = ms.toArray();
-            var msg = new Uint8Array(arr, 0, arr.byteLength);
-            return msg;
-        };
-        Transaction.prototype.AddWitness = function (signdata, pubkey, addrs) {
-            {
-                var msg = this.GetMessage();
-                var bsign = ThinNeo.Helper.VerifySignature(msg, signdata, pubkey);
-                if (bsign == false)
-                    throw new Error("wrong sign");
-                var addr = ThinNeo.Helper.GetAddressFromPublicKey(pubkey);
-                if (addr != addrs)
-                    throw new Error("wrong script");
-            }
-            var vscript = ThinNeo.Helper.GetAddressCheckScriptFromPublicKey(pubkey);
-            var sb = new ThinNeo.ScriptBuilder();
-            sb.EmitPushBytes(signdata);
-            var iscript = sb.ToArray();
-            this.AddWitnessScript(vscript, iscript);
-        };
-        Transaction.prototype.AddWitnessScript = function (vscript, iscript) {
-            var scripthash = ThinNeo.Helper.GetScriptHashFromScript(vscript);
-            if (this.witnesses == null)
-                this.witnesses = [];
-            var newwit = new Witness();
-            newwit.VerificationScript = vscript;
-            newwit.InvocationScript = iscript;
-            for (var i = 0; i < this.witnesses.length; i++) {
-                if (this.witnesses[i].Address == newwit.Address)
-                    throw new Error("alread have this witness");
-            }
-            var _witnesses;
-            if (this.witnesses)
-                _witnesses = this.witnesses;
-            else
-                _witnesses = [];
-            _witnesses.push(newwit);
-            _witnesses.sort(function (a, b) {
-                var hash_a = ThinNeo.Helper.GetScriptHashFromScript(a.VerificationScript);
-                var hash_b = ThinNeo.Helper.GetScriptHashFromScript(b.VerificationScript);
-                for (var i_4 = (hash_a.length - 1); i_4 >= 0; i_4--) {
-                    if (hash_a[i_4] > hash_b[i_4])
-                        return 1;
-                    if (hash_a[i_4] < hash_b[i_4])
-                        return -1;
-                }
-                return 0;
-            });
-            this.witnesses = _witnesses;
-        };
-        Transaction.prototype.GetHash = function () {
-            var msg = this.GetMessage();
-            var data = Neo.Cryptography.Sha256.computeHash(msg);
-            data = Neo.Cryptography.Sha256.computeHash(data);
-            return new Uint8Array(data, 0, data.byteLength);
-        };
-        return Transaction;
-    }());
-    ThinNeo.Transaction = Transaction;
-})(ThinNeo || (ThinNeo = {}));
-var ThinNeo;
-(function (ThinNeo) {
-    var OpCode;
-    (function (OpCode) {
-        OpCode[OpCode["PUSH0"] = 0] = "PUSH0";
-        OpCode[OpCode["PUSHF"] = 0] = "PUSHF";
-        OpCode[OpCode["PUSHBYTES1"] = 1] = "PUSHBYTES1";
-        OpCode[OpCode["PUSHBYTES75"] = 75] = "PUSHBYTES75";
-        OpCode[OpCode["PUSHDATA1"] = 76] = "PUSHDATA1";
-        OpCode[OpCode["PUSHDATA2"] = 77] = "PUSHDATA2";
-        OpCode[OpCode["PUSHDATA4"] = 78] = "PUSHDATA4";
-        OpCode[OpCode["PUSHM1"] = 79] = "PUSHM1";
-        OpCode[OpCode["PUSH1"] = 81] = "PUSH1";
-        OpCode[OpCode["PUSHT"] = 81] = "PUSHT";
-        OpCode[OpCode["PUSH2"] = 82] = "PUSH2";
-        OpCode[OpCode["PUSH3"] = 83] = "PUSH3";
-        OpCode[OpCode["PUSH4"] = 84] = "PUSH4";
-        OpCode[OpCode["PUSH5"] = 85] = "PUSH5";
-        OpCode[OpCode["PUSH6"] = 86] = "PUSH6";
-        OpCode[OpCode["PUSH7"] = 87] = "PUSH7";
-        OpCode[OpCode["PUSH8"] = 88] = "PUSH8";
-        OpCode[OpCode["PUSH9"] = 89] = "PUSH9";
-        OpCode[OpCode["PUSH10"] = 90] = "PUSH10";
-        OpCode[OpCode["PUSH11"] = 91] = "PUSH11";
-        OpCode[OpCode["PUSH12"] = 92] = "PUSH12";
-        OpCode[OpCode["PUSH13"] = 93] = "PUSH13";
-        OpCode[OpCode["PUSH14"] = 94] = "PUSH14";
-        OpCode[OpCode["PUSH15"] = 95] = "PUSH15";
-        OpCode[OpCode["PUSH16"] = 96] = "PUSH16";
-        OpCode[OpCode["NOP"] = 97] = "NOP";
-        OpCode[OpCode["JMP"] = 98] = "JMP";
-        OpCode[OpCode["JMPIF"] = 99] = "JMPIF";
-        OpCode[OpCode["JMPIFNOT"] = 100] = "JMPIFNOT";
-        OpCode[OpCode["CALL"] = 101] = "CALL";
-        OpCode[OpCode["RET"] = 102] = "RET";
-        OpCode[OpCode["APPCALL"] = 103] = "APPCALL";
-        OpCode[OpCode["SYSCALL"] = 104] = "SYSCALL";
-        OpCode[OpCode["TAILCALL"] = 105] = "TAILCALL";
-        OpCode[OpCode["DUPFROMALTSTACK"] = 106] = "DUPFROMALTSTACK";
-        OpCode[OpCode["TOALTSTACK"] = 107] = "TOALTSTACK";
-        OpCode[OpCode["FROMALTSTACK"] = 108] = "FROMALTSTACK";
-        OpCode[OpCode["XDROP"] = 109] = "XDROP";
-        OpCode[OpCode["XSWAP"] = 114] = "XSWAP";
-        OpCode[OpCode["XTUCK"] = 115] = "XTUCK";
-        OpCode[OpCode["DEPTH"] = 116] = "DEPTH";
-        OpCode[OpCode["DROP"] = 117] = "DROP";
-        OpCode[OpCode["DUP"] = 118] = "DUP";
-        OpCode[OpCode["NIP"] = 119] = "NIP";
-        OpCode[OpCode["OVER"] = 120] = "OVER";
-        OpCode[OpCode["PICK"] = 121] = "PICK";
-        OpCode[OpCode["ROLL"] = 122] = "ROLL";
-        OpCode[OpCode["ROT"] = 123] = "ROT";
-        OpCode[OpCode["SWAP"] = 124] = "SWAP";
-        OpCode[OpCode["TUCK"] = 125] = "TUCK";
-        OpCode[OpCode["CAT"] = 126] = "CAT";
-        OpCode[OpCode["SUBSTR"] = 127] = "SUBSTR";
-        OpCode[OpCode["LEFT"] = 128] = "LEFT";
-        OpCode[OpCode["RIGHT"] = 129] = "RIGHT";
-        OpCode[OpCode["SIZE"] = 130] = "SIZE";
-        OpCode[OpCode["INVERT"] = 131] = "INVERT";
-        OpCode[OpCode["AND"] = 132] = "AND";
-        OpCode[OpCode["OR"] = 133] = "OR";
-        OpCode[OpCode["XOR"] = 134] = "XOR";
-        OpCode[OpCode["EQUAL"] = 135] = "EQUAL";
-        OpCode[OpCode["INC"] = 139] = "INC";
-        OpCode[OpCode["DEC"] = 140] = "DEC";
-        OpCode[OpCode["SIGN"] = 141] = "SIGN";
-        OpCode[OpCode["NEGATE"] = 143] = "NEGATE";
-        OpCode[OpCode["ABS"] = 144] = "ABS";
-        OpCode[OpCode["NOT"] = 145] = "NOT";
-        OpCode[OpCode["NZ"] = 146] = "NZ";
-        OpCode[OpCode["ADD"] = 147] = "ADD";
-        OpCode[OpCode["SUB"] = 148] = "SUB";
-        OpCode[OpCode["MUL"] = 149] = "MUL";
-        OpCode[OpCode["DIV"] = 150] = "DIV";
-        OpCode[OpCode["MOD"] = 151] = "MOD";
-        OpCode[OpCode["SHL"] = 152] = "SHL";
-        OpCode[OpCode["SHR"] = 153] = "SHR";
-        OpCode[OpCode["BOOLAND"] = 154] = "BOOLAND";
-        OpCode[OpCode["BOOLOR"] = 155] = "BOOLOR";
-        OpCode[OpCode["NUMEQUAL"] = 156] = "NUMEQUAL";
-        OpCode[OpCode["NUMNOTEQUAL"] = 158] = "NUMNOTEQUAL";
-        OpCode[OpCode["LT"] = 159] = "LT";
-        OpCode[OpCode["GT"] = 160] = "GT";
-        OpCode[OpCode["LTE"] = 161] = "LTE";
-        OpCode[OpCode["GTE"] = 162] = "GTE";
-        OpCode[OpCode["MIN"] = 163] = "MIN";
-        OpCode[OpCode["MAX"] = 164] = "MAX";
-        OpCode[OpCode["WITHIN"] = 165] = "WITHIN";
-        OpCode[OpCode["SHA1"] = 167] = "SHA1";
-        OpCode[OpCode["SHA256"] = 168] = "SHA256";
-        OpCode[OpCode["HASH160"] = 169] = "HASH160";
-        OpCode[OpCode["HASH256"] = 170] = "HASH256";
-        OpCode[OpCode["CSHARPSTRHASH32"] = 171] = "CSHARPSTRHASH32";
-        OpCode[OpCode["JAVAHASH32"] = 173] = "JAVAHASH32";
-        OpCode[OpCode["CHECKSIG"] = 172] = "CHECKSIG";
-        OpCode[OpCode["CHECKMULTISIG"] = 174] = "CHECKMULTISIG";
-        OpCode[OpCode["ARRAYSIZE"] = 192] = "ARRAYSIZE";
-        OpCode[OpCode["PACK"] = 193] = "PACK";
-        OpCode[OpCode["UNPACK"] = 194] = "UNPACK";
-        OpCode[OpCode["PICKITEM"] = 195] = "PICKITEM";
-        OpCode[OpCode["SETITEM"] = 196] = "SETITEM";
-        OpCode[OpCode["NEWARRAY"] = 197] = "NEWARRAY";
-        OpCode[OpCode["NEWSTRUCT"] = 198] = "NEWSTRUCT";
-        OpCode[OpCode["SWITCH"] = 208] = "SWITCH";
-        OpCode[OpCode["THROW"] = 240] = "THROW";
-        OpCode[OpCode["THROWIFNOT"] = 241] = "THROWIFNOT";
-    })(OpCode = ThinNeo.OpCode || (ThinNeo.OpCode = {}));
-})(ThinNeo || (ThinNeo = {}));
 var ThinNeo;
 (function (ThinNeo) {
     var Compiler;
@@ -5034,4 +5636,826 @@ var ThinNeo;
         Compiler.Op = Op;
     })(Compiler = ThinNeo.Compiler || (ThinNeo.Compiler = {}));
 })(ThinNeo || (ThinNeo = {}));
+var ThinNeo;
+(function (ThinNeo) {
+    var Debug;
+    (function (Debug) {
+        var Helper;
+        (function (Helper) {
+            var MethodInfo = (function () {
+                function MethodInfo() {
+                    this.addr2line = {};
+                    this.line2addr = {};
+                    this.addr_count = 0;
+                    this.lines = new Array();
+                    this.addrs = new Array();
+                }
+                MethodInfo.prototype.Add = function (line, addr) {
+                    if (this.line2addr[line] == undefined) {
+                        this.line2addr[line] = addr;
+                        this.addr2line[addr] = line;
+                        if (this.addr_count == 0) {
+                            this.line2addr_minkey = line;
+                            this.line2addr_maxkey = line;
+                            this.addr2line_minkey = addr;
+                            this.addr2line_maxkey = addr;
+                        }
+                        this.addr_count++;
+                        if (line < this.line2addr_minkey)
+                            this.line2addr_minkey = line;
+                        if (line > this.line2addr_maxkey)
+                            this.line2addr_maxkey = line;
+                        if (addr < this.addr2line_minkey)
+                            this.addr2line_minkey = addr;
+                        if (addr > this.addr2line_maxkey)
+                            this.addr2line_maxkey = addr;
+                    }
+                    if (this.lines.indexOf(line) < 0)
+                        this.lines.push(line);
+                    if (this.addrs.indexOf(addr) < 0)
+                        this.addrs.push(addr);
+                };
+                MethodInfo.prototype.Sort = function () {
+                };
+                MethodInfo.prototype.GetAddr = function (line) {
+                    if (this.line2addr_maxkey == undefined)
+                        return -1;
+                    if (line > this.line2addr_maxkey)
+                        return -1;
+                    for (var i = 0; ; i++) {
+                        if (this.line2addr[line + i] != undefined)
+                            return this.line2addr[line + i];
+                    }
+                };
+                MethodInfo.prototype.GetAddrBack = function (line) {
+                    if (this.line2addr_minkey == undefined)
+                        return -1;
+                    if (this.addr_count == 0)
+                        return -1;
+                    if (line < this.line2addr_minkey)
+                        return -1;
+                    for (var i = 0; ; i--) {
+                        if (this.line2addr[line + i] != undefined)
+                            return this.line2addr[line + i];
+                    }
+                };
+                MethodInfo.prototype.GetLineDirect = function (addr) {
+                    if (this.addr2line[addr] != undefined)
+                        return this.addr2line[addr];
+                    return -1;
+                };
+                MethodInfo.prototype.GetLine = function (addr) {
+                    if (this.addr2line_maxkey == undefined)
+                        return -1;
+                    if (addr > this.addr2line_maxkey)
+                        return -1;
+                    for (var i = 0; ; i++) {
+                        if (this.addr2line[addr + i] != undefined)
+                            return this.addr2line[addr + i];
+                    }
+                };
+                MethodInfo.prototype.GetLineBack = function (addr) {
+                    if (this.addr2line_minkey == undefined)
+                        return -1;
+                    if (this.addr_count == 0)
+                        return -1;
+                    if (addr < this.addr2line_minkey)
+                        return -1;
+                    for (var i = 0; ; i--) {
+                        if (this.addr2line[addr + i] != undefined)
+                            return this.addr2line[addr + i];
+                    }
+                };
+                return MethodInfo;
+            }());
+            Helper.MethodInfo = MethodInfo;
+            var AddrMap = (function () {
+                function AddrMap() {
+                    this.methods = new Array();
+                }
+                AddrMap.prototype.GetAddr = function (line) {
+                    for (var a = 0; a < this.methods.length; a++) {
+                        var m = this.methods[a];
+                        var i = m.GetAddr(line);
+                        if (i > 0)
+                            return i + m.startAddr;
+                    }
+                    return -1;
+                };
+                AddrMap.prototype.GetAddrBack = function (line) {
+                    for (var a = 0; a < this.methods.length; a++) {
+                        var m = this.methods[a];
+                        var i = m.GetAddrBack(line);
+                        if (i > 0)
+                            return i + m.startAddr;
+                    }
+                    return -1;
+                };
+                AddrMap.prototype.GetLine = function (addr) {
+                    for (var a = 0; a < this.methods.length; a++) {
+                        var m = this.methods[a];
+                        var i = m.GetLine(addr);
+                        if (i > 0)
+                            return i;
+                    }
+                    return -1;
+                };
+                AddrMap.prototype.GetLineDirect = function (addr) {
+                    for (var a = 0; a < this.methods.length; a++) {
+                        var m = this.methods[a];
+                        var i = m.GetLineDirect(addr);
+                        if (i > 0)
+                            return i;
+                    }
+                    return -1;
+                };
+                AddrMap.prototype.GetLineBack = function (addr) {
+                    for (var _i = this.methods.length - 1; _i >= 0; _i--) {
+                        var m = this.methods[_i];
+                        var i = m.GetLineBack(addr);
+                        if (i > 0)
+                            return i;
+                    }
+                    return -1;
+                };
+                AddrMap.FromJson = function (json) {
+                    var info = new AddrMap();
+                    for (var key in json) {
+                        var item = json[key];
+                        var minfo = new MethodInfo();
+                        minfo.name = item["name"];
+                        minfo.startAddr = parseInt(item["addr"], 16);
+                        var map = item["map"];
+                        for (var i = 0; i < map.length; i++) {
+                            var mapitem = map[i];
+                            var src = parseInt(mapitem.substr(5));
+                            var addr = parseInt(mapitem.substr(0, 4), 16);
+                            if (src < 0 || src >= 0xffff)
+                                continue;
+                            minfo.Add(src, addr);
+                        }
+                        minfo.Sort();
+                        info.methods.push(minfo);
+                        info.methods.sort(function (a, b) {
+                            return a.startAddr - b.startAddr;
+                        });
+                    }
+                    return info;
+                };
+                return AddrMap;
+            }());
+            Helper.AddrMap = AddrMap;
+        })(Helper = Debug.Helper || (Debug.Helper = {}));
+    })(Debug = ThinNeo.Debug || (ThinNeo.Debug = {}));
+})(ThinNeo || (ThinNeo = {}));
+var ThinNeo;
+(function (ThinNeo) {
+    var Debug;
+    (function (Debug) {
+        var DebugScript = (function () {
+            function DebugScript() {
+            }
+            return DebugScript;
+        }());
+        Debug.DebugScript = DebugScript;
+        var DebugTool = (function () {
+            function DebugTool() {
+                this.scripts = {};
+            }
+            return DebugTool;
+        }());
+        Debug.DebugTool = DebugTool;
+    })(Debug = ThinNeo.Debug || (ThinNeo.Debug = {}));
+})(ThinNeo || (ThinNeo = {}));
+var ThinNeo;
+(function (ThinNeo) {
+    var SmartContract;
+    (function (SmartContract) {
+        var Debug;
+        (function (Debug) {
+            var VMState;
+            (function (VMState) {
+                VMState[VMState["NONE"] = 0] = "NONE";
+                VMState[VMState["HALT"] = 1] = "HALT";
+                VMState[VMState["FAULT"] = 2] = "FAULT";
+                VMState[VMState["BREAK"] = 4] = "BREAK";
+            })(VMState = Debug.VMState || (Debug.VMState = {}));
+            var OpType;
+            (function (OpType) {
+                OpType[OpType["Non"] = 0] = "Non";
+                OpType[OpType["Clear"] = 1] = "Clear";
+                OpType[OpType["Insert"] = 2] = "Insert";
+                OpType[OpType["Peek"] = 3] = "Peek";
+                OpType[OpType["Pop"] = 4] = "Pop";
+                OpType[OpType["Push"] = 5] = "Push";
+                OpType[OpType["Remove"] = 6] = "Remove";
+                OpType[OpType["Set"] = 7] = "Set";
+            })(OpType = Debug.OpType || (Debug.OpType = {}));
+            var Op = (function () {
+                function Op(type, ind) {
+                    if (ind === void 0) { ind = -1; }
+                    this.type = type;
+                    this.ind = ind;
+                }
+                Op.prototype.Clone = function () {
+                    var op = new Op(this.type, this.ind);
+                    return op;
+                };
+                return Op;
+            }());
+            Debug.Op = Op;
+            var StackItem = (function () {
+                function StackItem() {
+                }
+                StackItem.prototype.Clone = function () {
+                    if (this.type != "Struct")
+                        return this;
+                    var item = new StackItem();
+                    item.type = this.type;
+                    item.strvalue = this.strvalue;
+                    if (this.subItems != null) {
+                        item.subItems = [];
+                        for (var i = 0; i < this.subItems.length; i++) {
+                            item.subItems.push(this.subItems[i].Clone());
+                        }
+                    }
+                    return item;
+                };
+                StackItem.prototype.AsInt = function () {
+                    return parseInt(this.strvalue);
+                };
+                StackItem.prototype.AsBigInteger = function () {
+                    return Neo.BigInteger.parse(this.strvalue);
+                };
+                StackItem.prototype.asBytes = function () {
+                    return null;
+                };
+                StackItem.prototype.ToString = function () {
+                    if (this.type == "Array" || this.type == "Struct") {
+                        var outstr = this.type + "[";
+                        for (var i = 0; i < this.subItems.length; i++) {
+                            outstr += this.subItems[i].ToShortString();
+                            if (i != this.subItems.length - 1) {
+                                outstr += ",";
+                            }
+                        }
+                        outstr += "]";
+                        return outstr;
+                    }
+                    else {
+                        return this.type + ":" + this.strvalue;
+                    }
+                };
+                StackItem.prototype.ToShortString = function () {
+                    if (this.type == "Array" || this.type == "Struct") {
+                        var outstr = "[";
+                        for (var i = 0; i < this.subItems.length; i++) {
+                            outstr += this.subItems[i].ToShortString();
+                            if (i != this.subItems.length - 1) {
+                                outstr += ",";
+                            }
+                        }
+                        outstr += "]";
+                        return outstr;
+                    }
+                    else {
+                        return this.strvalue;
+                    }
+                };
+                StackItem.FromJson = function (json) {
+                    var item = new StackItem();
+                    for (var key in json) {
+                        item.type = key;
+                        break;
+                    }
+                    var strvalue = json[item.type];
+                    var isarrayvalue = json[item.type] instanceof Array;
+                    if (isarrayvalue == false) {
+                        item.strvalue = strvalue;
+                    }
+                    else {
+                        var arrayvalue = json[item.type];
+                        item.subItems = [];
+                        for (var i = 0; i < arrayvalue.length; i++) {
+                            item.subItems.push(StackItem.FromJson(arrayvalue[i]));
+                        }
+                    }
+                    return item;
+                };
+                return StackItem;
+            }());
+            Debug.StackItem = StackItem;
+            var LogScript = (function () {
+                function LogScript(hash) {
+                    this.ops = new Array();
+                    this.hash = hash;
+                }
+                LogScript.prototype.GetAllScriptName = function (names) {
+                    if (names.indexOf(this.hash) == -1) {
+                        names.push(this.hash);
+                    }
+                    var scount = 1;
+                    for (var i = 0; i < this.ops.length; i++) {
+                        var op = this.ops[i];
+                        if (op.subScript != null) {
+                            scount += op.subScript.GetAllScriptName(names);
+                        }
+                    }
+                    return scount;
+                };
+                LogScript.FromJson = function (json) {
+                    var hash = json["hash"];
+                    var script = new LogScript(hash);
+                    var array = json["ops"];
+                    for (var i = 0; i < array.length; i++) {
+                        var op = array[i];
+                        script.ops.push(LogOp.FromJson(op));
+                        var ss = script.ops[script.ops.length - 1].subScript;
+                        if (ss != null)
+                            ss.parent = script;
+                    }
+                    return script;
+                };
+                LogScript.prototype.Clone = function () {
+                    var s = new LogScript(this.hash);
+                    s.parent = this;
+                    s.ops = new Array();
+                    for (var i = 0; i < this.ops.length; i++) {
+                        var o = this.ops[i];
+                        s.ops.push(o.Clone());
+                    }
+                    return s;
+                };
+                return LogScript;
+            }());
+            Debug.LogScript = LogScript;
+            var LogOp = (function () {
+                function LogOp(addr, op) {
+                    this.addr = addr;
+                    this.op = op;
+                    if (op == undefined) {
+                        console.log("what a fuck");
+                    }
+                    LogOp.__guid++;
+                    this.thisguid = LogOp.__guid;
+                }
+                Object.defineProperty(LogOp.prototype, "guid", {
+                    get: function () {
+                        return this.thisguid;
+                    },
+                    enumerable: true,
+                    configurable: true
+                });
+                LogOp.prototype.GetHeader = function () {
+                    var addrstr = this.addr.toString(16);
+                    while (addrstr.length < 4)
+                        addrstr = "0" + addrstr;
+                    var name = this.addr + ":";
+                    if (this.op > ThinNeo.OpCode.PUSHBYTES1 && this.op < ThinNeo.OpCode.PUSHBYTES75)
+                        return name + "PUSHBYTES" + (this.op - ThinNeo.OpCode.PUSHBYTES1);
+                    else {
+                        var trystr = ThinNeo.OpCode[this.op];
+                        if (trystr == undefined)
+                            trystr = "" + this.op;
+                        return name + trystr;
+                    }
+                };
+                LogOp.FromJson = function (json) {
+                    var opstr = json["op"];
+                    var addr = json["addr"];
+                    var op = ThinNeo.OpCode[opstr];
+                    if (op == undefined)
+                        op = parseInt(opstr);
+                    var _op = new LogOp(addr, op);
+                    if (json["stack"] != undefined) {
+                        var array = json["stack"];
+                        _op.stack = new Array(array.length);
+                        for (var i = 0; i < array.length; i++) {
+                            var str = array[i];
+                            var ind = -1;
+                            if (str.indexOf('|') >= 0) {
+                                var strs = str.split('|');
+                                ind = parseInt(strs[1]);
+                                str = strs[0];
+                            }
+                            var _type = OpType[str];
+                            if (_type == undefined)
+                                _type = parseInt(str);
+                            _op.stack[i] = new Op(_type, ind);
+                        }
+                    }
+                    if (json["param"] != undefined) {
+                        _op.param = json["param"].hexToBytes();
+                    }
+                    if (json["result"] != undefined) {
+                        _op.opresult = StackItem.FromJson(json["result"]);
+                    }
+                    if (json["subscript"] != undefined) {
+                        _op.subScript = LogScript.FromJson(json["subscript"]);
+                    }
+                    return _op;
+                };
+                LogOp.prototype.Clone = function () {
+                    var op = new LogOp(this.addr, this.op);
+                    op.thisguid = this.thisguid;
+                    op.error = this.error;
+                    if (this.stack != null) {
+                        op.stack = new Array(this.stack.length);
+                        for (var i = 0; i < this.stack.length; i++) {
+                            op.stack[i] = this.stack[i].Clone();
+                        }
+                    }
+                    if (this.param != null) {
+                        op.param = this.param.clone();
+                    }
+                    if (this.opresult != null) {
+                        op.opresult = this.opresult.Clone();
+                    }
+                    op.subScript = this.subScript;
+                    return op;
+                };
+                LogOp.__guid = 0;
+                return LogOp;
+            }());
+            Debug.LogOp = LogOp;
+            var DumpInfo = (function () {
+                function DumpInfo() {
+                    this.script = null;
+                    this.error = null;
+                    this.curScript = null;
+                    this.curOp = null;
+                }
+                DumpInfo.FromJson = function (json) {
+                    var dumpinfo = new DumpInfo();
+                    if (json["error"] != undefined)
+                        dumpinfo.error = json["error"];
+                    if (json["VMState"] != undefined) {
+                        var state = json["VMState"];
+                        var words = state.split(",");
+                        dumpinfo.states = [];
+                        for (var i = 0; i < words.length; i++) {
+                            var item = words[i].replace(" ", "");
+                            dumpinfo.states.push(VMState[item]);
+                        }
+                    }
+                    if (json["script"] != undefined) {
+                        dumpinfo.script = LogScript.FromJson(json["script"]);
+                    }
+                    return dumpinfo;
+                };
+                return DumpInfo;
+            }());
+            Debug.DumpInfo = DumpInfo;
+        })(Debug = SmartContract.Debug || (SmartContract.Debug = {}));
+    })(SmartContract = ThinNeo.SmartContract || (ThinNeo.SmartContract = {}));
+})(ThinNeo || (ThinNeo = {}));
+var ThinNeo;
+(function (ThinNeo) {
+    var Debug;
+    (function (Debug) {
+        var State = (function () {
+            function State() {
+                this.ExeStack = new ThinNeo.VM.RandomAccessStack();
+                this.CalcStack = new ThinNeo.VM.RandomAccessStack();
+                this.AltStack = new ThinNeo.VM.RandomAccessStack();
+            }
+            Object.defineProperty(State.prototype, "StateID", {
+                get: function () {
+                    return this._StateID;
+                },
+                enumerable: true,
+                configurable: true
+            });
+            State.prototype.SetId = function (id) {
+                this._StateID = id;
+            };
+            State.prototype.PushExe = function (hash) {
+                this.ExeStack.Push(hash);
+                this._StateID++;
+            };
+            State.prototype.PopExe = function () {
+                this.ExeStack.Pop();
+                this._StateID++;
+            };
+            State.prototype.CalcCalcStack = function (op) {
+                if (op == ThinNeo.OpCode.TOALTSTACK) {
+                    var p = this.CalcStack.Pop();
+                    this.AltStack.Push(p);
+                    this._StateID++;
+                    return true;
+                }
+                if (op == ThinNeo.OpCode.FROMALTSTACK) {
+                    var p = this.AltStack.Pop();
+                    this.CalcStack.Push(p);
+                    this._StateID++;
+                    return true;
+                }
+                if (op == ThinNeo.OpCode.XSWAP) {
+                    var item = this.CalcStack.Pop();
+                    var xn = this.CalcStack.Peek(item.AsInt());
+                    var swapv = this.CalcStack.Peek(0);
+                    this.CalcStack.Set(item.AsInt(), swapv);
+                    this.CalcStack.Set(0, xn);
+                    this._StateID++;
+                    return true;
+                }
+                if (op == ThinNeo.OpCode.SWAP) {
+                    var v1 = this.CalcStack.Pop();
+                    var v2 = this.CalcStack.Pop();
+                    this.CalcStack.Push(v1);
+                    this.CalcStack.Push(v2);
+                    this._StateID++;
+                    return true;
+                }
+                if (op == ThinNeo.OpCode.ROT) {
+                    var v3 = this.CalcStack.Pop();
+                    var v2 = this.CalcStack.Pop();
+                    var v1 = this.CalcStack.Pop();
+                    this.CalcStack.Push(v2);
+                    this.CalcStack.Push(v3);
+                    this.CalcStack.Push(v1);
+                    this._StateID++;
+                    return true;
+                }
+                return false;
+            };
+            State.prototype.CalcCalcStack2 = function (stackop, item) {
+                if (stackop.type == ThinNeo.SmartContract.Debug.OpType.Push) {
+                    if (item == null)
+                        throw new Error(stackop.type + "can not pass null");
+                    this.CalcStack.Push(item);
+                }
+                else if (stackop.type == ThinNeo.SmartContract.Debug.OpType.Insert) {
+                    if (item == null)
+                        throw new Error(stackop.type + "can not pass null");
+                    this.CalcStack.Insert(stackop.ind, item);
+                }
+                else if (stackop.type == ThinNeo.SmartContract.Debug.OpType.Clear) {
+                    this.CalcStack.Clear();
+                }
+                else if (stackop.type == ThinNeo.SmartContract.Debug.OpType.Set) {
+                    if (item == null)
+                        throw new Error(stackop.type + "can not pass null");
+                    this.CalcStack.Set(stackop.ind, item);
+                }
+                else if (stackop.type == ThinNeo.SmartContract.Debug.OpType.Pop) {
+                    this.CalcStack.Pop();
+                }
+                else if (stackop.type == ThinNeo.SmartContract.Debug.OpType.Peek) {
+                }
+                else if (stackop.type == ThinNeo.SmartContract.Debug.OpType.Remove) {
+                    this.CalcStack.Remove(stackop.ind);
+                }
+                if (stackop.type != ThinNeo.SmartContract.Debug.OpType.Peek)
+                    this._StateID++;
+            };
+            State.prototype.DoSysCall = function () {
+            };
+            State.prototype.Clone = function () {
+                var state = new State();
+                state._StateID = this._StateID;
+                for (var i = 0; i < this.ExeStack.Count; i++) {
+                    var s = this.ExeStack.GetItem(i);
+                    state.ExeStack.Push(s);
+                }
+                for (var i = 0; i < this.CalcStack.Count; i++) {
+                    var s = this.CalcStack.GetItem(i);
+                    if (s == null)
+                        state.CalcStack.Push(null);
+                    else
+                        state.CalcStack.Push(s.Clone());
+                }
+                for (var i = 0; i < this.AltStack.Count; i++) {
+                    var s = this.AltStack.GetItem(i);
+                    state.AltStack.Push(s.Clone());
+                }
+                return state;
+            };
+            return State;
+        }());
+        Debug.State = State;
+        var CareItem = (function () {
+            function CareItem(name, state) {
+                this.name = name;
+                if (name == "Neo.Runtime.CheckWitness" ||
+                    name == "Neo.Runtime.Notify") {
+                    this.item = state.CalcStack.Peek(0).Clone();
+                }
+                else if (name == "Neo.Runtime.Log") {
+                    var item = state.CalcStack.Peek(0);
+                    this.item = new ThinNeo.SmartContract.Debug.StackItem();
+                    this.item.type = "String";
+                    if (item.type == "String") {
+                        this.item.strvalue = item.strvalue;
+                    }
+                    else if (item.type == "ByteArray") {
+                        var bt = item.strvalue.hexToBytes();
+                        this.item.strvalue = ThinNeo.Helper.Bytes2String(bt);
+                    }
+                    else {
+                        this.item.strvalue = "can't convert this.";
+                    }
+                }
+                else if (name == "Neo.Storage.Put") {
+                    var item1 = state.CalcStack.Peek(0);
+                    var item2 = state.CalcStack.Peek(1);
+                    var item3 = state.CalcStack.Peek(2);
+                    this.item = new ThinNeo.SmartContract.Debug.StackItem();
+                    this.item.type = "Array";
+                    this.item.subItems = new Array();
+                    this.item.subItems.push(item1.Clone());
+                    this.item.subItems.push(item2.Clone());
+                    this.item.subItems.push(item3.Clone());
+                }
+                else {
+                }
+            }
+            CareItem.prototype.ToString = function () {
+                return name + "(" + this.item == null ? "" : this.item.ToString() + ")";
+            };
+            return CareItem;
+        }());
+        Debug.CareItem = CareItem;
+        var SimVM = (function () {
+            function SimVM() {
+                this.lastScript = null;
+            }
+            SimVM.prototype.Execute = function (DumpInfo) {
+                var runstate = new State();
+                runstate.SetId(0);
+                this.stateClone = {};
+                this.mapState = {};
+                this.careinfo = new Array();
+                this.regenScript = new ThinNeo.SmartContract.Debug.LogScript(DumpInfo.script.hash);
+                this.lastScript = this.regenScript;
+                this.ExecuteScript(runstate, DumpInfo.script);
+            };
+            SimVM.prototype.ExecuteScript = function (runstate, script) {
+                {
+                    runstate.PushExe(script.hash);
+                    for (var i = 0; i < script.ops.length; i++) {
+                        var op = script.ops[i];
+                        var _nop = op.Clone();
+                        this.lastScript.ops.push(_nop);
+                        try {
+                            if (op.op == ThinNeo.OpCode.APPCALL) {
+                                var _script = op.subScript;
+                                var outscript = new ThinNeo.SmartContract.Debug.LogScript(op.subScript.hash);
+                                outscript.parent = this.lastScript;
+                                _nop.subScript = outscript;
+                                this.lastScript = outscript;
+                                if (op.stack != null) {
+                                    for (var j = 0; j < op.stack.length; j++) {
+                                        if (j == op.stack.length - 1) {
+                                            runstate.CalcCalcStack2(op.stack[j], op.opresult);
+                                        }
+                                        else {
+                                            runstate.CalcCalcStack2(op.stack[j], null);
+                                        }
+                                    }
+                                }
+                                runstate.PushExe(script.hash);
+                                if (this.stateClone[runstate.StateID] == undefined) {
+                                    this.stateClone[runstate.StateID] = runstate.Clone();
+                                }
+                                this.ExecuteScript(runstate, _script);
+                                this.mapState[_nop.guid] = runstate.StateID;
+                            }
+                            else if (op.op == ThinNeo.OpCode.CALL) {
+                                var _lastScript = new ThinNeo.SmartContract.Debug.LogScript(this.lastScript.hash);
+                                _lastScript.parent = this.lastScript;
+                                _nop.subScript = _lastScript;
+                                this.lastScript = _lastScript;
+                                runstate.PushExe(this.lastScript.hash);
+                                this.mapState[_nop.guid] = runstate.StateID;
+                            }
+                            else if (op.op == ThinNeo.OpCode.RET) {
+                                runstate.PopExe();
+                                {
+                                    this.lastScript = this.lastScript.parent;
+                                }
+                                if (this.stateClone[runstate.StateID] == undefined) {
+                                    this.stateClone[runstate.StateID] = runstate.Clone();
+                                }
+                                this.mapState[_nop.guid] = runstate.StateID;
+                            }
+                            else {
+                                if (op.op == ThinNeo.OpCode.SYSCALL) {
+                                    var name = ThinNeo.Helper.Bytes2String(op.param);
+                                    this.careinfo.push(new CareItem(name, runstate));
+                                }
+                                if (runstate.CalcCalcStack(op.op) == false) {
+                                    if (op.stack != null) {
+                                        for (var k = 0; k < op.stack.length; k++) {
+                                            if (k == op.stack.length - 1) {
+                                                runstate.CalcCalcStack2(op.stack[k], op.opresult);
+                                            }
+                                            else {
+                                                runstate.CalcCalcStack2(op.stack[k], null);
+                                            }
+                                        }
+                                    }
+                                }
+                                if (this.stateClone[runstate.StateID] == undefined) {
+                                    this.stateClone[runstate.StateID] = runstate.Clone();
+                                }
+                                this.mapState[_nop.guid] = runstate.StateID;
+                            }
+                        }
+                        catch (err1) {
+                            _nop.error = true;
+                        }
+                    }
+                }
+            };
+            return SimVM;
+        }());
+        Debug.SimVM = SimVM;
+    })(Debug = ThinNeo.Debug || (ThinNeo.Debug = {}));
+})(ThinNeo || (ThinNeo = {}));
+var Neo;
+(function (Neo) {
+    var IO;
+    (function (IO) {
+        var Caching;
+        (function (Caching) {
+            var TrackableCollection = (function () {
+                function TrackableCollection(items) {
+                    this._map = new NeoMap();
+                    if (items != null) {
+                        for (var i = 0; i < items.length; i++) {
+                            this._map.set(items[i].key, items[i]);
+                            items[i].trackState = Caching.TrackState.None;
+                        }
+                    }
+                }
+                TrackableCollection.prototype.add = function (item) {
+                    this._map.set(item.key, item);
+                    item.trackState = Caching.TrackState.Added;
+                };
+                TrackableCollection.prototype.clear = function () {
+                    this._map.forEach(function (value, key, map) {
+                        if (value.trackState == Caching.TrackState.Added)
+                            map.delete(key);
+                        else
+                            value.trackState = Caching.TrackState.Deleted;
+                    });
+                };
+                TrackableCollection.prototype.commit = function () {
+                    this._map.forEach(function (value, key, map) {
+                        if (value.trackState == Caching.TrackState.Deleted)
+                            map.delete(key);
+                        else
+                            value.trackState = Caching.TrackState.None;
+                    });
+                };
+                TrackableCollection.prototype.forEach = function (callback) {
+                    var _this = this;
+                    this._map.forEach(function (value, key) {
+                        callback(value, key, _this);
+                    });
+                };
+                TrackableCollection.prototype.get = function (key) {
+                    return this._map.get(key);
+                };
+                TrackableCollection.prototype.getChangeSet = function () {
+                    var array = new Array();
+                    this._map.forEach(function (value) {
+                        if (value.trackState != Caching.TrackState.None)
+                            array.push(value);
+                    });
+                    return array;
+                };
+                TrackableCollection.prototype.has = function (key) {
+                    return this._map.has(key);
+                };
+                TrackableCollection.prototype.remove = function (key) {
+                    var item = this._map.get(key);
+                    if (item.trackState == Caching.TrackState.Added)
+                        this._map.delete(key);
+                    else
+                        item.trackState = Caching.TrackState.Deleted;
+                };
+                return TrackableCollection;
+            }());
+            Caching.TrackableCollection = TrackableCollection;
+        })(Caching = IO.Caching || (IO.Caching = {}));
+    })(IO = Neo.IO || (Neo.IO = {}));
+})(Neo || (Neo = {}));
+var Neo;
+(function (Neo) {
+    var IO;
+    (function (IO) {
+        var Caching;
+        (function (Caching) {
+            var TrackState;
+            (function (TrackState) {
+                TrackState[TrackState["None"] = 0] = "None";
+                TrackState[TrackState["Added"] = 1] = "Added";
+                TrackState[TrackState["Changed"] = 2] = "Changed";
+                TrackState[TrackState["Deleted"] = 3] = "Deleted";
+            })(TrackState = Caching.TrackState || (Caching.TrackState = {}));
+        })(Caching = IO.Caching || (IO.Caching = {}));
+    })(IO = Neo.IO || (Neo.IO = {}));
+})(Neo || (Neo = {}));
 //# sourceMappingURL=neo-ts.js.map
