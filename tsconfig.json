@@ -4,7 +4,11 @@
     "outDir": "build/dist",
     "module": "esnext",
     "target": "es5",
-    "lib": ["es6", "dom", "es2017"],
+    "lib": [
+      "es6",
+      "dom",
+      "es2017"
+    ],
     "sourceMap": true,
     "allowJs": true,
     "jsx": "react",
@@ -22,11 +26,19 @@
     "skipLibCheck": true,
     "paths": {
       // 设着alias别名，相似webpack，相对上面设置的基础路径      
-      "@/*":["./src/*"],
-      "config":["./src/config"],
-      "utils/*":["./src/utils/*"],
-    } ,
-    "types": [ "node" ]
+      "@/*": [
+        "./src/*"
+      ],
+      "config": [
+        "./src/config"
+      ],
+      "utils/*": [
+        "./src/utils/*"
+      ]
+    },
+    "types": [
+      "node"
+    ]
   },
   "exclude": [
     "node_modules",

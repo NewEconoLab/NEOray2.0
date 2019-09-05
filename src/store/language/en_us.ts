@@ -102,7 +102,7 @@ export default {
     10: "Insufficient gas collection failed, please leave a message in the forum.",
   },
   url: {
-    invoke: "https://bbs.neldev.net/thread-146.htm",
-    debug: "https://bbs.neldev.net/thread-147.htm",
+    invoke: "https://medium.com/neweconolab/the-construction-method-of-parameters-that-call-contracts-f3964a2cbd9b",
+    debug: "https://medium.com/neweconolab/the-help-instructions-of-contract-debugging-e1dfd75ccfd1",
   }
 }

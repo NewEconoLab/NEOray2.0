@@ -3,7 +3,7 @@ import { History } from 'history'
 import './index.less';
 import { ICommonStore } from '@/store/interface/common.interface';
 import { inject, observer } from 'mobx-react';
-import Hint from '@/components/hint';
+import q1 from '@/img/help.png';
 import Input from '@/components/Input';
 import Select from '@/components/select';
 import Button from '@/components/Button';
@@ -50,7 +50,10 @@ export default class Invoke extends React.Component<IProps, IState> {
         return (
             <>
                 <div className="header" >
-                    { this.props.intl.message.invoke[ 1 ] } <Hint text="" />
+                    { this.props.intl.message.invoke[ 1 ] }
+                    <a href={ this.props.intl.message.url.invoke } target="_bank">
+                        <img src={ q1 } alt="" />
+                    </a>
                 </div>
                 { this.props.code.deploy ?
                     <div className="invoke-box">

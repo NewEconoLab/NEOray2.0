@@ -7,6 +7,7 @@ import { invokescript } from "./api/index.api";
 import { OutputType } from "@/containers/output/store/interface/index.interface";
 import { TransactionConfirm } from "@/utils/wallet";
 import { getNotify } from "@/store/api/common.api";
+import intl from "@/store/intl";
 
 class InvokeStore implements IInvokeStore {
     @action public buildScript = (args: IArgument[]) => {
@@ -31,7 +32,10 @@ class InvokeStore implements IInvokeStore {
         const script = this.buildScript(args);
         const argument: SendScriptArgs = { 'script': script.toHexString(), "description": "合约测试", sysfee, fee: netfee }
         if (attached) {
-            argument[ "attachedGas" ] = { [ ThinNeo.Helper.GetAddressFromScriptHash(codeStore.codeid.hexToBytes()) ]: attached }
+            argument[ "attachedGas" ] =
+                {
+                    [ ThinNeo.Helper.GetAddressFromScriptHash(codeStore.codeid.hexToBytes()) ]: attached
+                }
         }
         const result = await Teemo.NEO.sendScript(argument);
         const name = codeStore.filename;
@@ -39,7 +43,7 @@ class InvokeStore implements IInvokeStore {
             OutputStore.addOutputMessage(
                 {
                     "type": OutputType.tree,
-                    "title": `交易已发出：调用：${name} TXID：${result.txid}`,
+                    "title": `${intl.message.output[ 2 ]}：${intl.message.output[ 4 ]}：${name} TXID：${result.txid}`,
                     "value": {
                         'System Fee': sysfee ? sysfee + "GAS" : "0GAS",
                         'Network Fee': netfee ? netfee + "GAS" : "0GAS",
@@ -55,7 +59,7 @@ class InvokeStore implements IInvokeStore {
                         OutputStore.addOutputMessage(
                             {
                                 "type": OutputType.tree,
-                                "title": `交易已确认：调用：${name} TXID：${result.txid}`,
+                                "title": `${intl.message.output[ 3 ]}：${intl.message.output[ 4 ]}：${name} TXID：${result.txid}`,
                                 "value": {},
                                 "result": res[ 0 ],
                                 "txid": result.txid
@@ -66,7 +70,7 @@ class InvokeStore implements IInvokeStore {
             return result;
         }
         else {
-            throw new Error("交易失败")
+            throw new Error("Transaction fail")
         }
     }
 
@@ -77,7 +81,7 @@ class InvokeStore implements IInvokeStore {
         OutputStore.addOutputMessage(
             {
                 "type": OutputType.tree,
-                "title": `试运行：${name}`,
+                "title": `${intl.message.output[ 8 ]}：${name}`,
                 "value": {
                     "Invoke Paramenters": JSON.stringify(args),
                     "Result Code": ""

@@ -14,6 +14,7 @@ import { ICommonStore } from '@/store/interface/common.interface';
 import DownloadTeemo from '@/containers/download';
 // import LoginToast from '../logintoast';
 import { Tooltip } from 'antd';
+import { IIntl } from '@/store/interface/intl.interface';
 // import routers from '@/routers';
 
 interface IState {
@@ -28,6 +29,7 @@ interface IState {
     currentState: boolean,
 }
 interface IProps {
+    intl: IIntl,
     history: History,
     common: ICommonStore,
     onChangeLanguage: (lang: string) => void;
@@ -82,12 +84,12 @@ export default class Menubar extends React.Component<IProps, IState>{
                             {
                                 this.mapRouterUnderline("/file") ?
                                     <li className="active" onClick={ this.onclick.bind(this, 'file') }>
-                                        <Tooltip title="文件浏览" placement="right">
+                                        <Tooltip title={ this.props.intl.message.files[ 1 ] } placement="right">
                                             <Link to="/file"><img src={ require('@/img/liulan.png') } alt="" /></Link>
                                         </Tooltip>
                                     </li> :
                                     <li className="" onClick={ this.onclick.bind(this, 'file') }>
-                                        <Tooltip title="文件浏览" placement="right">
+                                        <Tooltip title={ this.props.intl.message.files[ 1 ] } placement="right">
                                             <Link to="/file"><img src={ require('@/img/liulan-un.png') } alt="" /></Link>
                                         </Tooltip>
                                     </li>
@@ -95,12 +97,12 @@ export default class Menubar extends React.Component<IProps, IState>{
                             {
                                 this.mapRouterUnderline("/deploy") ?
                                     <li className="active" onClick={ this.onclick.bind(this, 'deploy') }>
-                                        <Tooltip title="合约部署" placement="right">
+                                        <Tooltip title={ this.props.intl.message.deploy[ 1 ] } placement="right">
                                             <Link to="/deploy"><img src={ require('@/img/bushu.png') } alt="" /></Link>
                                         </Tooltip>
                                     </li> :
                                     <li className="" onClick={ this.onclick.bind(this, 'deploy') }>
-                                        <Tooltip title="合约部署" placement="right">
+                                        <Tooltip title={ this.props.intl.message.deploy[ 1 ] } placement="right">
                                             <Link to="/deploy"><img src={ require('@/img/bushu-un.png') } alt="" /></Link>
                                         </Tooltip>
                                     </li>
@@ -108,12 +110,12 @@ export default class Menubar extends React.Component<IProps, IState>{
                             {
                                 this.mapRouterUnderline("/invoke") ?
                                     <li className="active" onClick={ this.onclick.bind(this, 'invoke') }>
-                                        <Tooltip title="合约调用" placement="right">
+                                        <Tooltip title={ this.props.intl.message.invoke[ 1 ] } placement="right">
                                             <Link to="/invoke"><img src={ require('@/img/diaoyong.png') } alt="" /></Link>
                                         </Tooltip>
                                     </li> :
                                     <li className="" onClick={ this.onclick.bind(this, 'invoke') }>
-                                        <Tooltip title="合约调用" placement="right">
+                                        <Tooltip title={ this.props.intl.message.invoke[ 1 ] } placement="right">
                                             <Link to="/invoke"><img src={ require('@/img/diaoyong-un.png') } alt="" /></Link>
                                         </Tooltip>
                                     </li>
@@ -121,12 +123,12 @@ export default class Menubar extends React.Component<IProps, IState>{
                             {
                                 this.mapRouterUnderline("/debug") ?
                                     <li className="active" onClick={ this.onclick.bind(this, 'debug') }>
-                                        <Tooltip title="合约调试" placement="right">
+                                        <Tooltip title={ this.props.intl.message.debug[ 1 ] } placement="right">
                                             <Link to="/debug"><img src={ require('@/img/debug.png') } alt="" /></Link>
                                         </Tooltip>
                                     </li> :
                                     <li className="" onClick={ this.onclick.bind(this, 'debug') }>
-                                        <Tooltip title="合约调试" placement="right">
+                                        <Tooltip title={ this.props.intl.message.debug[ 1 ] } placement="right">
                                             <Link to="/debug"><img src={ require('@/img/debug-un.png') } alt="" /></Link>
                                         </Tooltip>
                                     </li>
@@ -136,14 +138,14 @@ export default class Menubar extends React.Component<IProps, IState>{
                                     ?
                                     <li className="active" onClick={ this.onclick.bind(this, 'support') }>
                                         <Link to="/support">
-                                            <Tooltip title="支持" placement="right">
+                                            <Tooltip title={ this.props.intl.message.about[ 1 ] } placement="right">
                                                 <img src={ require('@/img/zhichi.png') } alt="" />
                                             </Tooltip>
                                         </Link>
                                     </li>
                                     :
                                     <li className="" onClick={ this.onclick.bind(this, 'support') }>
-                                        <Tooltip title="支持" placement="right">
+                                        <Tooltip title={ this.props.intl.message.about[ 1 ] } placement="right">
                                             <Link to="/support"><img src={ require('@/img/zhichi-un.png') } alt="" /></Link>
                                         </Tooltip>
                                     </li>

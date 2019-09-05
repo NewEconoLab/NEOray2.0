@@ -2,7 +2,7 @@ import * as React from 'react';
 import './index.less';
 import { inject, observer } from 'mobx-react';
 import classnames from 'classnames';
-import Hint from '@/components/hint';
+import q1 from '@/img/help.png';
 import Button from '@/components/Button';
 import Search from '@/components/search';
 import { IDebugProps } from './store/interface/debug.interface';
@@ -32,7 +32,10 @@ export default class Debug extends React.Component<IDebugProps> {
         return (
             <>
                 <div className="header" >
-                    { this.props.intl.message.debug[ 1 ] } <Hint text="" />
+                    { this.props.intl.message.debug[ 1 ] }
+                    <a href={ this.props.intl.message.url.debug } target="_bank">
+                        <img src={ q1 } alt="" />
+                    </a>
                 </div>
                 <div className="debuginfo-box">
                     <div className="button-box">

@@ -37,6 +37,7 @@ export default class LayoutIndex extends React.Component<any, any> {
       <div className="layout-container">
         <ScrollToTop>
           <Menubar
+            intl={ intl }
             common={ CommonStore }
             history={ this.context.router.history }
             onSidebarChange={ this.onSidebarChange }

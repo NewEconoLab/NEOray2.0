@@ -101,7 +101,7 @@ export default {
     10: "gas不足领取失败，请在论坛留言索取。",
   },
   url: {
-    invoke: "https://bbs.neldev.net/thread-146.htm",
-    debug: "https://bbs.neldev.net/thread-147.htm",
+    invoke: "https://bbs.neldev.net/thread-146",
+    debug: "https://bbs.neldev.net/thread-147",
   }
 }

@@ -7,6 +7,7 @@ import { OutputType } from "@/containers/output/store/interface/index.interface"
 import codeStore from "@/containers/code/store/code.store";
 import { TransactionConfirm } from "@/utils/wallet";
 import fileStore from "@/containers/file/store/file.store";
+import intl from "@/store/intl";
 
 class DeployStore implements IDeployStore {
     @action public getDeployInfo = async (hash: string) => {
@@ -64,7 +65,7 @@ class DeployStore implements IDeployStore {
         if (result) {
             storageContractFile(common.address, params.contractHash, params.name, params.version, params.author, params.email, params.description, params.payment ? 1 : 0, params.storage ? 1 : 0, params.call ? 1 : 0, result.txid, codeStore.language === "python" ? "py" : "cs")
             OutputStore.addOutputMessage({
-                'title': `交易已发送：部署合约：${params.name} TXID:${result.txid}`,
+                'title': `${intl.message.output[ 2 ]}：${intl.message.output[ 7 ]}：${params.name} TXID:${result.txid}`,
                 'type': OutputType.tree,
                 "value": {
                     "name": params.name,
@@ -79,7 +80,7 @@ class DeployStore implements IDeployStore {
             TransactionConfirm(result.txid, (data => {
                 OutputStore.addOutputMessage({
                     'type': OutputType.message,
-                    "title": `交易已确认：部署合约：${params.name} TXID:${result.txid}`,
+                    "title": `${intl.message.output[ 3 ]}：${intl.message.output[ 7 ]}：${params.name} TXID:${result.txid}`,
                     "value": {}
                 })
                 fileStore.deleteToCodeList(id);
