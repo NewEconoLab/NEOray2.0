@@ -74,13 +74,19 @@ export default class OutputBox extends React.Component<IOutputProps> {
     private getOutputMessage = (item: IOutputMessage, index: number) => {
         if (item.type === OutputType.tree) {
             return (<>
-                <FileTree title={ item.title } key={ index } view=
-                    { item.txid && <Button text={ this.props.intl.message.button[ 9 ] } style={ { margin: '0 30px' } } onClick={ this.toDebug.bind(this, item.txid) } /> }>
+                <FileTree title={ item.title } key={ index + OutputType[ item.type ] } view=
+                    { item.txid &&
+                        <Button
+                            text={ this.props.intl.message.button[ 9 ] }
+                            style={ { margin: '0 30px' } }
+                            onClick={ this.toDebug.bind(this, item.txid) }
+                            key={ index + OutputType[ item.type ] + "btn" }
+                        /> }>
                     { item.value && <>
                         { Object.keys(item.value).map((key, n) => {
                             const value = item.value[ key ];
                             return (
-                                <div className="output-item" key={ n + key }>
+                                <div className="output-item" key={ n + key + OutputType[ item.type ] + "msg" }>
                                     <div className="item-name">{ key }</div>
                                     <div className="item-value">{ (typeof value === "object" ? <pre>{ JSON.stringify(value, null, 3) }</pre> : value) }</div>
                                 </div>
@@ -88,9 +94,10 @@ export default class OutputBox extends React.Component<IOutputProps> {
                         }) }
                         {
                             item.result &&
-                            <pre className="output-json">{ JSON.stringify(item.result, null, 3) }</pre>
+                            <pre className="output-json" key={ index + OutputType[ item.type ] + "result" }>{ JSON.stringify(item.result, null, 3) }</pre>
                         }
-                    </> }
+                    </>
+                    }
                 </FileTree>
             </>
             )
@@ -99,7 +106,7 @@ export default class OutputBox extends React.Component<IOutputProps> {
             return Object.keys(item.value).map((key, n) => {
                 const value = item.value[ key ];
                 return (
-                    <div className="output-item" key={ n + key }>
+                    <div className="output-item" key={ n + key + OutputType[ OutputType.default ] + index + "default" }>
                         <div className="item-name">{ key }</div>
                         <div className="item-value">{ (typeof value === "object" ? JSON.stringify(value, null, 3) : value) }</div>
                     </div>
@@ -107,7 +114,7 @@ export default class OutputBox extends React.Component<IOutputProps> {
             })
         }
         else {
-            return <div className="output-item">{ item.title }</div>
+            return <div className="output-item" key={ index + OutputType[ item.type ] + "title" }>{ item.title }</div>
         }
     }
 

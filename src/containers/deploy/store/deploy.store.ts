@@ -41,7 +41,7 @@ class DeployStore implements IDeployStore {
                 const avmhex = coderesult[ 0 ].avm;
                 const blob = new Blob([ avmhex.hexToBytes() ]);
                 const download = URL.createObjectURL(blob);
-                OutputStore.addOutputMessage({ title: "", type: OutputType.default, value: { "编译成功": "hash：" + result[ 0 ].hash } })
+                OutputStore.addOutputMessage({ title: "", type: OutputType.default, value: { [ intl.message.output[ 5 ] ]: "hash：" + result[ 0 ].hash } })
                 return {
                     scripthash,     // 合约hash
                     avmhex,         // avm hex字符串
