@@ -1,8 +1,6 @@
 // 整体布局
 import * as React from 'react';
 import * as PropTypes from 'prop-types';
-// import Header from '@/containers/header';
-import { zh_CN, en_US } from '@/language';
 import store from '@/store/common';
 import CommonStore from '@/store/common';
 import OutputStore from '@/containers/output/store/index.store';
@@ -43,16 +41,13 @@ export default class LayoutIndex extends React.Component<any, any> {
             history={ this.context.router.history }
             onSidebarChange={ this.onSidebarChange }
             onChangeLanguage={ this.onChangeLanguage }
-            btn={ this.state.lang === 'en' ? en_US.btn : zh_CN.btn }
-            input={ this.state.lang === 'en' ? en_US.input : zh_CN.input }
-            locale={ this.state.lang === 'en' ? en_US.header : zh_CN.header }
           />
           <div className="sidebar" hidden={ !this.state.currentState }>
             { this.props.children }
           </div>
           <div className="code-container">
             <CodeBox codeStore={ codeStore } ref={ this.codeEditor } intl={ intl } />
-            <OutputBox debug={ debugStore } output={ OutputStore } onSizeChange={ this.onSizeChange } history={ this.context.router.history } />
+            <OutputBox intl={ intl } debug={ debugStore } output={ OutputStore } onSizeChange={ this.onSizeChange } history={ this.context.router.history } />
           </div>
         </ScrollToTop>
       </div>

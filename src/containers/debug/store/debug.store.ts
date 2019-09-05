@@ -310,41 +310,6 @@ class DebugStore implements IDebugStore {
                 const codeline = this.addr.GetLineBack(op.addr);// 尽量倒着取到对应的代码 codemirro 塞入的时候多往下了
                 if (codeline >= 0) {
                     common.event.emit('setPosition', codeline)
-                    // this.currentHighlightLine = codeline - 1;
-
-                    // console.log(this.cEditor.getViewport());
-                    // this.cEditor.setCursor(this.currentHighlightLine)
-                    // this.cEditor.addLineClass(this.currentHighlightLine, "background", "fixed-position");
-
-                    // setTimeout(() =>
-                    // {
-                    // let codeContent = document.getElementById("code-div") as HTMLDivElement;
-                    // let arr = codeContent.getElementsByClassName("CodeMirror-code");
-                    // let code = arr[ 0 ] as HTMLDivElement;
-                    // console.log(code.children);
-
-                    // console.log("~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~. 华丽的分割线 .~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~.~");
-
-                    // for (let index = 0; index < code.childElementCount; index++)
-                    // {
-                    //     const element = code.childNodes.item(index) as HTMLDivElement;
-                    //     let chdiv = element.childNodes.item(0) as HTMLDivElement
-                    //     // console.log(chdiv.className);
-
-                    //     if (chdiv.className.includes("fixed-position"))
-                    //     {
-                    //         // console.log("index: " + index);
-                    //         // console.log("count: " + code.childElementCount);
-                    //         // console.log("index-count/2: " + (index - parseInt((code.childElementCount / 2).toString())));
-                    //         // console.log("currentLine: " + this.currentHighlightLine);
-                    //         // console.log("new line: " + (this.currentHighlightLine + (index - parseInt((code.childElementCount / 2).toString()))));
-                    //         this.cEditor.setCursor(this.currentHighlightLine + (index - parseInt((code.childElementCount / 2).toString())))
-                    //     }
-                    // }
-
-                    // this.cEditor.removeLineClass(oldHightlightLine, "background", "cursor-line-highight")
-                    // this.cEditor.addLineClass(this.currentHighlightLine, "background", "cursor-line-highight");
-                    // }, 1);
                 }
                 else {
                     common.event.emit('delPosition')

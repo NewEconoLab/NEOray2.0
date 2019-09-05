@@ -6,7 +6,7 @@ import { observer, inject } from 'mobx-react';
 import { IOutputProps, OutputType, IOutputMessage } from './store/interface/index.interface';
 import FileTree from '../file/filetree';
 import Button from '@/components/Button';
-@inject('output', 'debug')
+@inject('output', 'debug', 'intl')
 @observer
 export default class OutputBox extends React.Component<IOutputProps> {
 
@@ -39,7 +39,7 @@ export default class OutputBox extends React.Component<IOutputProps> {
                         </div>
                         <div className="btn-icon"><img onClick={ this.props.output.clearOutputMessage } src={ require("@/img/qingkong.png") } alt="" /></div>
                     </div>
-                    <div className={ outputtitle } onClick={ this.onViewShow.bind(this, "output") }>输出</div>
+                    <div className={ outputtitle } onClick={ this.onViewShow.bind(this, "output") }>{ this.props.intl.message.output[ 1 ] }</div>
                     <div className={ stacktitle } onClick={ this.onViewShow.bind(this, "stack") }>CalcStack&AltStack</div>
                 </div>
                 <div className="output-content" id="drag" style={ { height: this.state.heightNumber } }>
@@ -75,7 +75,7 @@ export default class OutputBox extends React.Component<IOutputProps> {
         if (item.type === OutputType.tree) {
             return (<>
                 <FileTree title={ item.title } key={ index } view=
-                    { item.txid && <Button text="调试" style={ { margin: '0 30px' } } onClick={ this.toDebug.bind(this, item.txid) } /> }>
+                    { item.txid && <Button text={ this.props.intl.message.button[ 9 ] } style={ { margin: '0 30px' } } onClick={ this.toDebug.bind(this, item.txid) } /> }>
                     { item.value && <>
                         { Object.keys(item.value).map((key, n) => {
                             const value = item.value[ key ];

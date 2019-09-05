@@ -29,10 +29,7 @@ interface IState {
 }
 interface IProps {
     history: History,
-    locale: any,
     common: ICommonStore,
-    btn: any,
-    input: any,
     onChangeLanguage: (lang: string) => void;
     onSidebarChange: (state: boolean) => void;
 }

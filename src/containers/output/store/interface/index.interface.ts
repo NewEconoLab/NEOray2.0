@@ -1,5 +1,6 @@
 import { IDebugStore } from "@/containers/debug/store/interface/debug.interface";
 import H from "history"
+import { IIntl } from "@/store/interface/intl.interface";
 
 export interface IOutputStore {
     currentPage: string,
@@ -14,6 +15,7 @@ export interface IOutputProps {
     history: H.History
     output: IOutputStore,
     debug: IDebugStore,
+    intl: IIntl
     onSizeChange: () => void
 }
 
