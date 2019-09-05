@@ -94,20 +94,20 @@ export default class Support extends React.Component<IProps> {
             const result = await this.props.support.claimGas();
             if (result ? result[ 0 ] : false) {
                 const args = {
-                    message: this.props.intl.message.toast[ 6 ],
+                    message: this.props.intl.message.toast[ 9 ],
                     duration: 5,
                 };
                 notification.open(args);
             } else {
                 const args = {
-                    message: this.props.intl.message.toast[ 7 ],
+                    message: this.props.intl.message.toast[ 10 ],
                     duration: 5,
                 };
                 notification.open(args);
             }
         } catch (error) {
             const args = {
-                message: this.props.intl.message.toast[ 7 ],
+                message: this.props.intl.message.toast[ 10 ],
                 duration: 5,
             };
             notification.open(args);

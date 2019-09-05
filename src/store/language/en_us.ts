@@ -73,7 +73,7 @@ export default {
   about: {
     1: "Support",
     2: "Address",
-    3: "GAS余额",
+    3: "GAS balance",
     4: "Each wallet can request 500 GAS once a day. Please leave a message on our forum if you need more GAS.",
     5: "Welcome to our community",
     6: "NEL Developer Forum",
@@ -97,7 +97,9 @@ export default {
     5: "Copied successfully",
     6: "Transaction sent successfully",
     7: "Transaction rejected",
-    8: "Transaction failed"
+    8: "Transaction failed",
+    9: "Request sent successfully",
+    10: "Insufficient gas collection failed, please leave a message in the forum.",
   },
   url: {
     invoke: "https://bbs.neldev.net/thread-146.htm",
