@@ -94,15 +94,7 @@ export default class Invoke extends React.Component<IProps, IState> {
                         </div> 
                         */}
                         <div className="invoke-json">
-                            <textarea rows={ 200 } cols={ 280 } value={ this.state.jsonStr } onChange={ this.onJsonChange } />
-                            {/* <MonacoEditor
-                            language="json"
-                            theme="vs-dark"
-                            value={ this.state.jsonStr }
-                            options={ { selectOnLineNumbers: true, language: 'json' } }
-                            onChange={ this.onCodeChange }
-                            editorDidMount={ this.editorDidMount }
-                        /> */}
+                            <textarea value={ this.state.jsonStr } onChange={ this.onJsonChange } />
                         </div>
                         <div className="invoke-button">
                             <div>
