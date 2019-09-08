@@ -8,6 +8,7 @@ class FileStore implements IFileStore {
     @observable public filelist: Array<{ id: string, name: string, language: string }> = [];
     @observable public deployList: IContract[] = [];
     @observable public loadList: IContract[] = [];
+    @observable public currentFile: { id: string, deploy: boolean } = { id: "", deploy: false };
 
     // 创建合约
     @action public createContract = (filename: string) => {
@@ -46,6 +47,7 @@ class FileStore implements IFileStore {
 
         localStorage.setItem("NEORAY_NOT_DEPLOYED_FILES", JSON.stringify(arr));
         codeStore.initCode(id, name, language, "", false);
+        this.currentFile = { id, deploy: false };
         return id;
     }
 
@@ -72,6 +74,7 @@ class FileStore implements IFileStore {
         this.filelist = arr;
         if (codeStore.codeid === id) {
             codeStore.initCode(id, name, language, codeStore.code, false);
+            this.currentFile = { id, deploy: false };
         }
     }
 
@@ -92,6 +95,7 @@ class FileStore implements IFileStore {
         localStorage.removeItem(id);
         if (id === codeStore.codeid) {
             codeStore.initCode("", "", "py", "", false);
+            this.currentFile = { id: "", deploy: false };
         }
     }
 
@@ -135,6 +139,7 @@ class FileStore implements IFileStore {
         const result = await readOssFile(code.scripthash, code.language, false);
         if (result) {
             codeStore.initCode(code.scripthash, code.name, code.language, result, true);
+            this.currentFile = { id: code.scripthash, deploy: true };
         }
     };
 
@@ -151,6 +156,7 @@ class FileStore implements IFileStore {
             }
         }
         codeStore.initCode(fileid, file.name, file.language, code ? code : '', false);
+        this.currentFile = { id: fileid, deploy: false };
     }
 
     /**
@@ -162,6 +168,7 @@ class FileStore implements IFileStore {
         const result = await readOssFile(hash, language, false);
         if (result) {
             codeStore.initCode(hash, contractinfo.name, language, result, true);
+            this.currentFile = { id: hash, deploy: true };
         }
         const files = localStorage.getItem('NEORAY_FILES_HASHLOAD');
         let arr: IContract[] = [];
@@ -199,6 +206,7 @@ class FileStore implements IFileStore {
 
         localStorage.setItem("NEORAY_NOT_DEPLOYED_FILES", JSON.stringify(arr));
         codeStore.initCode(id, name, language, code, false);
+        this.currentFile = { id, deploy: false };
         return id;
     }
 
@@ -215,6 +223,22 @@ class FileStore implements IFileStore {
         localStorage.setItem('NEORAY_FILES_HASHLOAD', JSON.stringify(arr))
         if (hash === codeStore.codeid) {
             codeStore.initCode("", "", "py", "", false);
+            this.currentFile = { id: hash, deploy: false };
+        }
+    }
+
+    @action public toCurrentFile = async () => {
+        if (this.currentFile.deploy) {
+            const contractinfo = (await getContractDeployInfoByHash(this.currentFile.id))[ 0 ];
+            const language = contractinfo.language === 'py' ? 'py' : 'cs';
+            const result = await readOssFile(this.currentFile.id, language, false);
+            if (result) {
+                codeStore.initCode(this.currentFile.id, contractinfo.name, language, result, true);
+                this.currentFile = { id: this.currentFile.id, deploy: true };
+            }
+        }
+        else {
+            this.openFileCode(this.currentFile.id);
         }
     }
 }

@@ -6,6 +6,7 @@ import outputStore from "@/containers/output/store/index.store";
 import { observable, action } from "mobx";
 import { readOssFile } from "@/containers/code/store/api/common.api";
 import { TreeView, TreeViewItems } from "@/utils/treeViewItem";
+import fileStore from "@/containers/file/store/file.store";
 
 class DebugStore implements IDebugStore {
     @observable public isStart: boolean = false;
@@ -88,27 +89,30 @@ class DebugStore implements IDebugStore {
     }
 
     @action public stopDebug = () => {
-        this.isStart = false;
-        this.currentTxid = "";
-        this.dumpstr = "";
-        this.dumpinfo = "";
-        this.notify = "";
-        this.txlist = []
-        this.oplist = [];
-        const div = document.getElementById("calcstack-content") as HTMLDivElement;
-        const div1 = document.getElementById("altstack-content") as HTMLDivElement;
-        const div2 = document.getElementById("valuetool") as HTMLDivElement;
-        if (div) {
-            this.divClear(div)
+        if (this.isStart) {
+            this.isStart = false;
+            this.currentTxid = "";
+            this.dumpstr = "";
+            this.dumpinfo = "";
+            this.notify = "";
+            this.txlist = []
+            this.oplist = [];
+            const div = document.getElementById("calcstack-content") as HTMLDivElement;
+            const div1 = document.getElementById("altstack-content") as HTMLDivElement;
+            const div2 = document.getElementById("valuetool") as HTMLDivElement;
+            if (div) {
+                this.divClear(div)
+            }
+            if (div1) {
+                this.divClear(div1)
+            }
+            if (div2) {
+                this.divClear(div2)
+            }
+            common.event.emit('delPosition');
+            outputStore.toPage("output");
+            fileStore.toCurrentFile();
         }
-        if (div1) {
-            this.divClear(div1)
-        }
-        if (div2) {
-            this.divClear(div2)
-        }
-        common.event.emit('delPosition');
-        outputStore.toPage("output");
     }
 
     @action public addAvmStr(str: string) {
