@@ -12,6 +12,7 @@ import { IDeployStore } from './store/interface/deploy.interface';
 import Toast from '@/components/Toast';
 import { notification } from 'antd';
 import { IIntl } from '@/store/interface/intl.interface';
+import { IDebugStore } from '../debug/store/interface/debug.interface';
 
 interface IProps {
     route: {
@@ -22,6 +23,7 @@ interface IProps {
     code: ICodeStore,
     deploy: IDeployStore,
     intl: IIntl,
+    debug: IDebugStore,
 }
 
 interface IState {
@@ -41,7 +43,7 @@ interface IState {
     deploy: boolean;
 }
 
-@inject('common', 'code', 'deploy', 'intl')
+@inject('common', 'code', 'deploy', 'intl', 'debug')
 @observer
 export default class Deploy extends React.Component<IProps, IState> {
 
@@ -73,6 +75,7 @@ export default class Deploy extends React.Component<IProps, IState> {
             this.props.common.login();
         }
         this.initDeploy();
+        this.props.debug.stopDebug();
     }
 
     public render() {

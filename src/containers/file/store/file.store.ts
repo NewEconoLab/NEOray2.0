@@ -138,9 +138,19 @@ class FileStore implements IFileStore {
         }
     };
 
-    @action public openFileCode = (file: { id: string, name: string, language: string }) => {
-        const code = localStorage.getItem(file.id);
-        codeStore.initCode(file.id, file.name, file.language, code ? code : '', false);
+    @action public openFileCode = (fileid: string) => {
+        const code = localStorage.getItem(fileid);
+        const loadlist = localStorage.getItem('NEORAY_FILES_HASHLOAD');
+        let loads: IContract[] = [];
+        let file: IContract = { "language": 'cs', "scripthash": fileid, "name": fileid };
+        if (loadlist) {
+            loads = JSON.parse(loadlist)
+            const arr = loads.find(item => item.scripthash === fileid);
+            if (arr) {
+                file = arr[ 0 ];
+            }
+        }
+        codeStore.initCode(fileid, file.name, file.language, code ? code : '', false);
     }
 
     /**

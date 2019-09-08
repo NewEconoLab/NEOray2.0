@@ -20,7 +20,7 @@ class InvokeStore implements IInvokeStore {
         sb.EmitPushNumber(random_int);
         sb.Emit(ThinNeo.OpCode.DROP);
         for (let i = args.length - 1; i >= 0; i--) {
-            sb.EmitArguments(args);
+            sb.EmitArguments(args[ i ]);
         }
         const appcall = Neo.Uint160.parse(codeStore.codeid);
         // let appcall = this.currentContract.scripthash.hexToBytes();

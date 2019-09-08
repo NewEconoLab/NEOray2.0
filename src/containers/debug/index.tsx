@@ -94,7 +94,7 @@ export default class Debug extends React.Component<IDebugProps> {
         e.layout({ height: 0, width: 0 });
         e.layout();
         e.onDidChangeCursorPosition(listener => {
-            e.revealLineInCenter(listener.position.lineNumber)
+            // e.revealLineInCenter(listener.position.lineNumber)
             this.props.debug.onDebug(listener.position.lineNumber - 1)
         })
     }

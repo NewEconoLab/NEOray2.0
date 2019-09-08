@@ -63,7 +63,7 @@ export const compilePythonContractFile = (address: string, code: string) => {
 export const storageContractFile = (address: string, hash: string, name: string, version: string, author: string, email: string, descript: string, feepay: 1 | 0, isstore: 1 | 0, iscall: 1 | 0, txid: string, lange?: string) => {
     const opts = {
         method: "storageContractFile",
-        params: [ address, hash, name, version, author, email, descript, feepay, isstore, iscall, txid ]
+        params: [ address, hash, name, version, author, email, descript, feepay, isstore, iscall, txid, lange ]
     }
     return request(opts);
 }

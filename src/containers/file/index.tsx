@@ -11,6 +11,7 @@ import { ICodeStore } from '../code/store/interface/code.interface';
 import FileTree from './filetree';
 import { IContract, IFileStore } from './store/interface/file.interface';
 import { IIntl } from '@/store/interface/intl.interface';
+import { IDebugStore } from '../debug/store/interface/debug.interface';
 
 interface IProps {
     route: {
@@ -21,8 +22,9 @@ interface IProps {
     code: ICodeStore,
     file: IFileStore,
     intl: IIntl,
+    debug: IDebugStore,
 }
-@inject('common', 'code', 'file', 'intl')
+@inject('common', 'code', 'file', 'intl', 'debug')
 @observer
 export default class SelectFile extends React.Component<IProps> {
 
@@ -41,6 +43,7 @@ export default class SelectFile extends React.Component<IProps> {
 
     public componentDidMount() {
         this.props.file.initFileList();
+        this.props.debug.stopDebug();
     }
 
     public render() {
@@ -263,7 +266,7 @@ export default class SelectFile extends React.Component<IProps> {
     }
 
     private onFileClick = (file) => {
-        this.props.file.openFileCode(file);
+        this.props.file.openFileCode(file.id);
     }
 
     private showDeployContract = (code: IContract) => {

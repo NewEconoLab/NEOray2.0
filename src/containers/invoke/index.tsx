@@ -12,6 +12,7 @@ import { ICodeStore } from '../code/store/interface/code.interface';
 import { IArgument, IInvokeStore } from './store/interface/invoke.interface';
 import { notification } from 'antd';
 import { IIntl } from '@/store/interface/intl.interface';
+import { IDebugStore } from '../debug/store/interface/debug.interface';
 // import MonacoEditor from 'react-monaco-editor';
 // import { editor } from 'monaco-editor';
 
@@ -22,6 +23,7 @@ interface IProps {
     history: History,
     common: ICommonStore,
     code: ICodeStore,
+    debug: IDebugStore,
     invoke: IInvokeStore,
     intl: IIntl,
 }
@@ -32,7 +34,7 @@ interface IState {
     sysfee: string,
     attached: string,
 }
-@inject('common', 'code', 'invoke', 'intl')
+@inject('common', 'code', 'invoke', 'intl', 'debug')
 @observer
 export default class Invoke extends React.Component<IProps, IState> {
 
@@ -44,7 +46,9 @@ export default class Invoke extends React.Component<IProps, IState> {
         attached: ""
     }
 
-    // private editor: editor.IStandaloneCodeEditor;
+    public componentDidMount() {
+        this.props.debug.stopDebug();
+    }
 
     public render() {
         return (

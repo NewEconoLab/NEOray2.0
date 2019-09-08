@@ -10,11 +10,7 @@ export interface IFileStore {
     openDeployCode: (code: IContract) => Promise<void>;
     initLoadCode: (hash: string) => Promise<boolean>;
     initFileCode: (filename: string, code: string) => string;
-    openFileCode: (file: {
-        id: string;
-        name: string;
-        language: string;
-    }) => void;
+    openFileCode: (fileid: string) => void
     deleteLoadCode: (hash: string) => void;
 }
 export interface IContract {
