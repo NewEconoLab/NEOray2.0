@@ -1,3 +1,4 @@
+import { IIntl } from "./intl.interface";
 
 
 export interface ICommonStore {
@@ -18,7 +19,8 @@ export interface ICommonStore {
   getSessionAddress: () => void // 获取登陆态
 }
 export interface ICommonProps {
-  common: ICommonStore
+  intl: IIntl;
+  common: ICommonStore;
 }
 export interface ILoginParam {
   address: string,

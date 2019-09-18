@@ -5969,6 +5969,8 @@ var ThinNeo;
                     var array = json["ops"];
                     for (var i = 0; i < array.length; i++) {
                         var op = array[i];
+                        if(op.op==="CALL_I")
+                            op.op="CALL";                        
                         script.ops.push(LogOp.FromJson(op));
                         var ss = script.ops[script.ops.length - 1].subScript;
                         if (ss != null)
@@ -6295,7 +6297,7 @@ var ThinNeo;
                     runstate.PushExe(script.hash);
                     for (var i = 0; i < script.ops.length; i++) {
                         var op = script.ops[i];
-                        var _nop = op.Clone();
+                        var _nop = op.Clone();                      
                         this.lastScript.ops.push(_nop);
                         try {
                             if (op.op == ThinNeo.OpCode.APPCALL) {

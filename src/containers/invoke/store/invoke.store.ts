@@ -8,6 +8,7 @@ import { OutputType } from "@/containers/output/store/interface/index.interface"
 import { TransactionConfirm } from "@/utils/wallet";
 import { getNotify } from "@/store/api/common.api";
 import intl from "@/store/intl";
+import { HASH_CONFIG } from "@/config";
 
 class InvokeStore implements IInvokeStore {
     @action public buildScript = (args: IArgument[]) => {
@@ -28,14 +29,15 @@ class InvokeStore implements IInvokeStore {
         return sb.ToArray();
     }
 
-    @action public invoke = async (args: IArgument[], netfee: string, sysfee: string, attached: string) => {
-        const script = this.buildScript(args);
-        const argument: SendScriptArgs = { 'script': script.toHexString(), "description": "合约测试", sysfee, fee: netfee }
-        if (attached) {
-            argument[ "attachedGas" ] =
-                {
-                    [ ThinNeo.Helper.GetAddressFromScriptHash(codeStore.codeid.hexToBytes()) ]: attached
-                }
+    @action public invoke = async (args: Argument[], netfee: string, sysfee: string, attached: string) => {
+        // const script = this.buildScript(args);
+        const argument: SendScriptArgs = {
+            scriptHash: codeStore.codeid.replace('0x', ''),
+            scriptArguments: args,
+            description: "合约测试",
+            sysfee,
+            fee: netfee,
+            attachedAssets: { [ HASH_CONFIG.ID_GAS ]: attached }
         }
         const result = await Teemo.NEO.sendScript(argument);
         const name = codeStore.filename;
@@ -49,7 +51,7 @@ class InvokeStore implements IInvokeStore {
                         'Network Fee': netfee ? netfee + "GAS" : "0GAS",
                         'Attached Gas': attached ? netfee + "GAS" : "0GAS",
                         "Invoke Argument": JSON.stringify(args, null, 3),
-                        'Script hex': script.toHexString()
+                        // 'Script hex': script.toHexString()
                     }
                 }
             )

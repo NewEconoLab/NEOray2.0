@@ -11,6 +11,8 @@ export default {
     9: "Debug",
     10: "Download",
     11: "Deploy contract",
+    12: "Confrim",
+    13: "Cancel",
   },
   code: {
     1: "Not deployed"
@@ -100,6 +102,9 @@ export default {
     8: "Transaction failed",
     9: "Request sent successfully",
     10: "Insufficient gas collection failed, please leave a message in the forum.",
+    11: "If the Teemo wallet is not detected, you will not be able to deploy and call the contract. Please use this function after installing the login wallet.",
+    12: "Go to Teemo's official website",
+    13: "Prompt",
   },
   url: {
     invoke: "https://medium.com/neweconolab/the-construction-method-of-parameters-that-call-contracts-f3964a2cbd9b",

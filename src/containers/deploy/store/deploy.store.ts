@@ -83,8 +83,15 @@ class DeployStore implements IDeployStore {
                     "title": `${intl.message.output[ 3 ]}：${intl.message.output[ 7 ]}：${params.name} TXID:${result.txid}`,
                     "value": {}
                 })
+                const code = codeStore.code;
+                const codeid = codeStore.codeid;
+                const language = codeStore.language;
                 fileStore.deleteToCodeList(id);
                 fileStore.initFileList();
+                if (id === codeid) {
+                    codeStore.initCode(params.contractHash, params.name, language, code, true);
+                    fileStore.currentFile = { id: params.contractHash, deploy: false };
+                }
             }))
             return result;
         }

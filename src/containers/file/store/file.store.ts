@@ -110,8 +110,6 @@ class FileStore implements IFileStore {
             arr = JSON.parse(files);
         }
         this.filelist = arr;
-        console.log(arr);
-
         this.deployList = [];
         try {
             const result = await getContractRemarkByAddress(common.address);
@@ -145,14 +143,14 @@ class FileStore implements IFileStore {
 
     @action public openFileCode = (fileid: string) => {
         const code = localStorage.getItem(fileid);
-        const loadlist = localStorage.getItem('NEORAY_FILES_HASHLOAD');
-        let loads: IContract[] = [];
+        const loadlist = localStorage.getItem('NEORAY_NOT_DEPLOYED_FILES');
+        let loads: any[] = [];
         let file: IContract = { "language": 'cs', "scripthash": fileid, "name": fileid };
         if (loadlist) {
             loads = JSON.parse(loadlist)
-            const arr = loads.find(item => item.scripthash === fileid);
-            if (arr) {
-                file = arr[ 0 ];
+            const findfile = loads.find(item => item.id === fileid);
+            if (findfile) {
+                file = findfile;
             }
         }
         codeStore.initCode(fileid, file.name, file.language, code ? code : '', false);
@@ -175,6 +173,9 @@ class FileStore implements IFileStore {
         if (files) {
             arr = JSON.parse(files)
         }
+        arr = arr.filter((value, index) => {
+            return value.scripthash !== hash;
+        })
         arr.push({ name: contractinfo.name, scripthash: hash, language: language });
         this.loadList = arr;
         // this.loadList=arr;
@@ -189,20 +190,16 @@ class FileStore implements IFileStore {
         const files = localStorage.getItem('NEORAY_NOT_DEPLOYED_FILES');
         let arr: any[] = [];
         const index = filename.lastIndexOf("\.");
-        console.log('index', index);
 
         const language = filename.substring(index + 1, filename.length);
-        console.log('language', language);
 
         const name = filename.substring(0, index);
-        console.log('name', name);
 
         if (files) {
             arr = JSON.parse(files);
         }
         arr.push({ id, name, language })
         this.filelist = arr;
-        console.log('filelist', arr);
 
         localStorage.setItem("NEORAY_NOT_DEPLOYED_FILES", JSON.stringify(arr));
         codeStore.initCode(id, name, language, code, false);

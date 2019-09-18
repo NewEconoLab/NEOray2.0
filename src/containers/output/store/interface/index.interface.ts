@@ -32,3 +32,9 @@ export enum OutputType {
     default,
     message,
 }
+
+export interface ITreeView {
+    title: string;
+    value: string;
+    items: ITreeView[];
+}

@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { injectIntl } from 'react-intl';
-import { observer } from 'mobx-react';
+import { observer, inject } from 'mobx-react';
 import './index.less';
 import Button from '../Button';
 // import Borderbox from '@/components/Borderbox';
@@ -16,7 +15,7 @@ interface IProps {
   onConfirm?: () => void,
   onCancel?: () => void,
 }
-// @inject('home')
+@inject('intl')
 @observer
 class Alertbox extends React.Component<IProps, any> {
   public render() {
@@ -29,8 +28,8 @@ class Alertbox extends React.Component<IProps, any> {
           <div className="alert-text">{ this.props.title }</div>
           { this.props.children }
           <div className="alert-btn-wrapper">
-            <Button text="取消" onClick={ this.handleToCancel } />
-            <Button text="确认" onClick={ this.handleToConfirm } btnColor="blue-btn" />
+            { this.props.onCancel && <Button text={ this.props.intl.message.button[ 13 ] } onClick={ this.handleToCancel } /> }
+            { this.props.onConfirm && <Button text={ this.props.intl.message.button[ 12 ] } onClick={ this.handleToConfirm } btnColor="blue-btn" /> }
           </div>
         </div>
       </div>
@@ -54,4 +53,4 @@ class Alertbox extends React.Component<IProps, any> {
   }
 }
 
-export default injectIntl(Alertbox)
+export default Alertbox

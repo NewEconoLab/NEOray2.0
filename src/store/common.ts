@@ -29,7 +29,7 @@ class Common implements ICommonStore {
         if (state === 'succes') {
             this.loginState = 2;
             const args = {
-                message: '登陆成功',
+                message: intl.message.toast[ 1 ],
                 duration: 5,
             };
             notification.success(args);
@@ -40,7 +40,7 @@ class Common implements ICommonStore {
         if (state === 'fail') {
             this.loginState = 3;
             const args = {
-                message: '您已拒绝连接',
+                message: intl.message.toast[ 2 ],
                 duration: 5,
             };
             notification.error(args);
@@ -51,9 +51,9 @@ class Common implements ICommonStore {
         if (state === 'login') {
             this.loginState = 1;
             const args = {
-                message: '正在连接Teemo钱包',
+                message: intl.message.toast[ 3 ],
                 description:
-                    '请在页面上进行确认',
+                    intl.message.toast[ 4 ],
                 duration: 5,
             };
             notification.info(args);

@@ -5955,6 +5955,8 @@ var ThinNeo;
                     var array = json["ops"];
                     for (var i = 0; i < array.length; i++) {
                         var op = array[i];
+                        if(op.op==="CALL_I")
+                            op.op="CALL";
                         script.ops.push(LogOp.FromJson(op));
                         var ss = script.ops[script.ops.length - 1].subScript;
                         if (ss != null)

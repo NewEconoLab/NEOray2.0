@@ -43,7 +43,7 @@ export default class OutputBox extends React.Component<IOutputProps> {
                     <div className={ stacktitle } onClick={ this.onViewShow.bind(this, "stack") }>CalcStack&AltStack</div>
                 </div>
                 <div className="output-content" id="drag" style={ { height: this.state.heightNumber } }>
-                    <div className={ outputbox }>
+                    <div className={ outputbox } id="outputbox">
                         { this.props.output.outputList.map((item, index) => this.getOutputMessage(item, index)) }
                     </div>
                     <div className={ stackbox }>
@@ -159,8 +159,8 @@ export default class OutputBox extends React.Component<IOutputProps> {
 
     private toDebug = (txid: string) => {
         // this.props.
-        this.props.debug.startDebug(txid)
         this.props.history.push("debug")
+        this.props.debug.startDebug(txid)
     }
 
 }

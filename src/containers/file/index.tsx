@@ -108,7 +108,7 @@ export default class SelectFile extends React.Component<IProps> {
                     }
                 </div>
                 { this.state.showAlert &&
-                    <Alertbox title={ this.state.alertTitle } onCancel={ this.handleToCancel } onClose={ this.handleToClose } onConfirm={ this.handleToConfirm } >
+                    <Alertbox intl={ this.props.intl } title={ this.state.alertTitle } onCancel={ this.handleToCancel } onClose={ this.handleToClose } onConfirm={ this.handleToConfirm } >
                         <div className="children-box">
                             { (this.state.alertState === 0 || this.state.alertState === 1) &&
                                 <>

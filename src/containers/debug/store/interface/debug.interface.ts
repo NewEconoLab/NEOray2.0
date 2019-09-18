@@ -12,7 +12,6 @@ export interface IDebugStore {
     startDebug: (txid: string) => void;
     stopDebug: () => void;
     onDebug: (line: number) => void;
-    initDebug: (txid: string) => Promise<boolean>
     onTxidChange: (txid: string) => void
 }
 

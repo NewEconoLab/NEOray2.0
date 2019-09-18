@@ -82,7 +82,7 @@ export default class Menubar extends React.Component<IProps, IState>{
                     <div className="menubar-content">
                         <ul>
                             {
-                                this.mapRouterUnderline("/file") ?
+                                this.props.history.location.pathname === "/file" ?
                                     <li className="active" onClick={ this.onclick.bind(this, 'file') }>
                                         <Tooltip title={ this.props.intl.message.files[ 1 ] } placement="right">
                                             <Link to="/file"><img src={ require('@/img/liulan.png') } alt="" /></Link>
@@ -95,7 +95,7 @@ export default class Menubar extends React.Component<IProps, IState>{
                                     </li>
                             }
                             {
-                                this.mapRouterUnderline("/deploy") ?
+                                this.props.history.location.pathname === "/deploy" ?
                                     <li className="active" onClick={ this.onclick.bind(this, 'deploy') }>
                                         <Tooltip title={ this.props.intl.message.deploy[ 1 ] } placement="right">
                                             <Link to="/deploy"><img src={ require('@/img/bushu.png') } alt="" /></Link>
@@ -108,7 +108,7 @@ export default class Menubar extends React.Component<IProps, IState>{
                                     </li>
                             }
                             {
-                                this.mapRouterUnderline("/invoke") ?
+                                this.props.history.location.pathname === "/invoke" ?
                                     <li className="active" onClick={ this.onclick.bind(this, 'invoke') }>
                                         <Tooltip title={ this.props.intl.message.invoke[ 1 ] } placement="right">
                                             <Link to="/invoke"><img src={ require('@/img/diaoyong.png') } alt="" /></Link>
@@ -121,7 +121,7 @@ export default class Menubar extends React.Component<IProps, IState>{
                                     </li>
                             }
                             {
-                                this.mapRouterUnderline("/debug") ?
+                                this.props.history.location.pathname === "/debug" ?
                                     <li className="active" onClick={ this.onclick.bind(this, 'debug') }>
                                         <Tooltip title={ this.props.intl.message.debug[ 1 ] } placement="right">
                                             <Link to="/debug"><img src={ require('@/img/debug.png') } alt="" /></Link>
@@ -134,7 +134,7 @@ export default class Menubar extends React.Component<IProps, IState>{
                                     </li>
                             }
                             {
-                                this.mapRouterUnderline("/support")
+                                this.props.history.location.pathname === "/support"
                                     ?
                                     <li className="active" onClick={ this.onclick.bind(this, 'support') }>
                                         <Link to="/support">
@@ -194,12 +194,12 @@ export default class Menubar extends React.Component<IProps, IState>{
         this.props.common.setLanguage(lang);
     }
     // 一级菜单选择
-    private mapRouterUnderline = (path: string) => {
-        if (path === this.props.history.location.pathname) {
-            return true;
-        }
-        else {
-            return false;
-        }
-    }
+    // private mapRouterUnderline = (path: string) => {
+    //     if (path === this.props.history.location.pathname) {
+    //         return true;
+    //     }
+    //     else {
+    //         return false;
+    //     }
+    // }
 }

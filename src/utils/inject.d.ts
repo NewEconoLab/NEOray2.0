@@ -177,11 +177,13 @@ interface SendArgs {
 }
 
 interface SendScriptArgs {
-    script: string;
+    scriptHash: string;
+    scriptArguments: Argument[];
+    attachedAssets?: AttachedAssets;
+    assetIntentOverrides?: AssetIntentOverrides;
     fee?: string;
     sysfee?: string;
     description?: string;
-    attachedGas?: AttachedGas;
     network?: "TestNet" | "MainNet";
 }
 

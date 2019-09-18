@@ -140,7 +140,7 @@ export function TransactionConfirm(txid: string, call: (result: any) => void) {
   window.addEventListener('Teemo.NEO.TRANSACTION_CONFIRMED', (data: CustomEvent) => {
     console.log("inject TRANSACTION_CONFIRMED ");
     console.log(data.detail);
-    if (data.detail && data.detail.TXID === txid) {
+    if (data.detail && (data.detail.TXID as string).includes(txid.replace('0x', ''))) {
       call(data.detail);
     }
   })

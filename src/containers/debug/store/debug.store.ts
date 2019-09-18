@@ -4,7 +4,7 @@ import common from "@/store/common";
 import codeStore from "@/containers/code/store/code.store";
 import outputStore from "@/containers/output/store/index.store";
 import { observable, action } from "mobx";
-import { readOssFile } from "@/containers/code/store/api/common.api";
+import { readOssFile, getContractDeployInfoByHash } from "@/containers/code/store/api/common.api";
 import { TreeView, TreeViewItems } from "@/utils/treeViewItem";
 import fileStore from "@/containers/file/store/file.store";
 
@@ -24,6 +24,8 @@ class DebugStore implements IDebugStore {
     public contractFiles: {} = {};
     public simVM: ThinNeo.Debug.SimVM;
     @action public initTxList = async () => {
+        this.txlist = [];
+        // this.currentTxid = "";
         if (common.address && codeStore.deploy) {
             try {
                 const result = await getTxidByAddressAndContract(common.address, codeStore.codeid, 1, 20);
@@ -48,7 +50,6 @@ class DebugStore implements IDebugStore {
         const dumpResult = await getDumpInfoByTxid(txid);
         this.initNotify();
         if (dumpResult) {
-
             const dumpinfostr = dumpResult[ 0 ][ 'dimpInfo' ];
             const lzma: nid.LZMA = new nid.LZMA();
             nid.utils.MEMORY.reset();
@@ -95,8 +96,9 @@ class DebugStore implements IDebugStore {
             this.dumpstr = "";
             this.dumpinfo = "";
             this.notify = "";
-            this.txlist = []
+            // this.txlist = []
             this.oplist = [];
+            this.stackarr = [];
             const div = document.getElementById("calcstack-content") as HTMLDivElement;
             const div1 = document.getElementById("altstack-content") as HTMLDivElement;
             const div2 = document.getElementById("valuetool") as HTMLDivElement;
@@ -159,37 +161,40 @@ class DebugStore implements IDebugStore {
         }
     }
 
-
     public async initCode(hasharr: string[]) {
         // this.cEditor.setValue("");
         for (const hash of hasharr) {
+            const contractinfo = (await getContractDeployInfoByHash(hash))[ 0 ];
+            const language = contractinfo.language === 'py' ? 'py' : 'cs';
+            const name = contractinfo.name;
             // tslint:disable-next-line:one-variable-per-declaration
             let cs, py, avm, map = "";
-            try {
-                cs = await readOssFile(hash, "cs", false);
-            } catch (error) {
-                cs = "";
+            if (language === 'cs') {
+                try {
+                    cs = await readOssFile(hash, "cs", false);
+                } catch (error) {
+                    cs = "";
+                }
             }
-            try {
-                py = await readOssFile(hash, 'py', false);
-
-            } catch (error) {
-                py = ""
+            else {
+                try {
+                    py = await readOssFile(hash, 'py', false);
+                } catch (error) {
+                    py = ""
+                }
             }
             try {
                 avm = await readOssFile(hash, "avm", false);
-
             } catch (error) {
                 avm = "";
             }
             try {
                 map = await readOssFile(hash, "map.json", false);
-
             } catch (error) {
                 map = "";
             }
             this.contractFiles[ hash ] = {
-                cs, py, avm, map
+                cs, py, avm, map, name, language
             }
         }
     }
@@ -206,15 +211,15 @@ class DebugStore implements IDebugStore {
 
                     this.addr = ThinNeo.Debug.Helper.AddrMap.FromJson(JSON.parse(coderesult.map));
                     // this.cEditor.setValue(coderesult.cs);
-                    codeStore.code = coderesult.cs ? coderesult.cs : coderesult.py;
-                    codeStore.codeid = hash;
+                    const codestr = coderesult.cs ? coderesult.cs : coderesult.py;
+                    const filename = coderesult.name ? coderesult.name : hash
+                    codeStore.initCode(hash, filename, coderesult.language, codestr, true);
                 }
                 else {
                     codeStore.code = "";
                     codeStore.codeid = "";
                     codeStore.filename = "";
                 }
-
             }
         }
         catch (error) {
@@ -341,10 +346,6 @@ class DebugStore implements IDebugStore {
                 common.event.emit('delPosition')
             }
         }
-    }
-
-    public async initDebug(txid: string) {
-        return true;
     }
 }
 

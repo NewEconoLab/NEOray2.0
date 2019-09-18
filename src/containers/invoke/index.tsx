@@ -148,7 +148,7 @@ export default class Invoke extends React.Component<IProps, IState> {
 
     private invoke = async () => {
         try {
-            const result = await this.props.invoke.invoke(this.state.args, this.state.netfee, this.state.sysfee, this.state.attached);
+            const result = await this.props.invoke.invoke(this.state.args as Argument[], this.state.netfee, this.state.sysfee, this.state.attached);
             if (result) {
                 notification.success({ message: this.props.intl.message.toast[ 6 ], duration: 3 })
             }
