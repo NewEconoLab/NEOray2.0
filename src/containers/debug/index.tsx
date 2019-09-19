@@ -17,8 +17,11 @@ export default class Debug extends React.Component<IDebugProps> {
         txlist: [],
         start: false,
         label: "avm",
-        currentTxid: ""
+        currentTxid: "",
+        currentLine: 0,
     }
+
+    private editor: editor.IStandaloneCodeEditor;
 
     public componentDidMount() {
         this.initTxList();
@@ -39,7 +42,13 @@ export default class Debug extends React.Component<IDebugProps> {
                 </div>
                 <div className="debuginfo-box">
                     <div className="button-box">
-                        <Search options={ this.props.debug.txlist } placeholder="Select Txid" onChange={ this.onTxidChange } value={ this.props.debug.currentTxid } text="" />
+                        <Search
+                            options={ this.props.debug.txlist }
+                            placeholder="Select Txid"
+                            onChange={ this.onTxidChange }
+                            value={ this.props.debug.currentTxid }
+                            disable={ !!this.props.debug.isStart }
+                            text="" />
                         { this.props.debug.isStart ?
                             <Button text={ this.props.intl.message.button[ 5 ] } btnSize="bg-btn" onClick={ this.debugOnStop } /> :
                             <Button text={ this.props.intl.message.button[ 4 ] } btnSize="bg-btn" onClick={ this.debugOnStart } />
@@ -90,13 +99,61 @@ export default class Debug extends React.Component<IDebugProps> {
     // 编译器加载完毕事件
     private editorDidMount = (e: editor.IStandaloneCodeEditor, monaco: any) => {
         // console.log('editorDidMount', e);
+        this.editor = e;
         e.focus();
         e.layout({ height: 0, width: 0 });
         e.layout();
+        const model = e.getModel();
+        if (this.state.currentLine > 0) {
+            // e.setPosition({ "lineNumber": this.state.currentLine, "column": 1 });
+            if (model) {
+                const value: editor.IModelDeltaDecoration =
+                {
+                    range: new monaco.Range(this.state.currentLine, 1, this.state.currentLine, 1),
+                    options: { marginClassName: 'debug-line', className: 'debug-line', isWholeLine: true }
+                }
+                model.deltaDecorations([], [ value ])
+            }
+            e.revealLineInCenter(this.state.currentLine);
+        }
         e.onDidChangeCursorPosition(listener => {
             // e.revealLineInCenter(listener.position.lineNumber)
-            this.props.debug.onDebug(listener.position.lineNumber - 1)
+            const line = listener.position.lineNumber;
+            this.removeBreakPoint(this.state.currentLine);
+            if (model) {
+                const value: editor.IModelDeltaDecoration =
+                {
+                    range: new monaco.Range(line, 1, line, 1),
+                    options: { marginClassName: 'debug-line', className: 'debug-line', isWholeLine: true }
+                }
+                model.deltaDecorations([], [ value ])
+            }
+            // e.setPosition({ "lineNumber": line, "column": 1 });
+            this.setState({ currentLine: line })
+            // e.revealLineInCenter(line);
+            this.props.debug.onDebug(line - 1)
         })
+    }
+
+    private removeBreakPoint(line?: number) {
+        const model = this.editor.getModel()
+        if (!model) { return }
+        let decorations: editor.IModelDecoration[];
+        const ids: string[] = []
+        if (line !== undefined) {
+            const arr = this.editor.getLineDecorations(line)
+            decorations = arr ? arr : [];
+        } else {
+            decorations = model.getAllDecorations();
+        }
+        for (const decoration of decorations) {
+            if (decoration.options.marginClassName === 'debug-line') {
+                ids.push(decoration.id)
+            }
+        }
+        if (ids && ids.length) {
+            model.deltaDecorations(ids, [])
+        }
     }
 
     // 编译器加载完毕事件

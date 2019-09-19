@@ -7,6 +7,7 @@ import { observable, action } from "mobx";
 import { readOssFile, getContractDeployInfoByHash } from "@/containers/code/store/api/common.api";
 import { TreeView, TreeViewItems } from "@/utils/treeViewItem";
 import fileStore from "@/containers/file/store/file.store";
+import { notification } from "antd";
 
 class DebugStore implements IDebugStore {
     @observable public isStart: boolean = false;
@@ -44,48 +45,55 @@ class DebugStore implements IDebugStore {
     }
 
     @action public startDebug = async (txid: string) => {
-        this.isStart = true;
-        this.currentTxid = txid;
-        outputStore.toPage("stack");
-        const dumpResult = await getDumpInfoByTxid(txid);
-        this.initNotify();
-        if (dumpResult) {
-            const dumpinfostr = dumpResult[ 0 ][ 'dimpInfo' ];
-            const lzma: nid.LZMA = new nid.LZMA();
-            nid.utils.MEMORY.reset();
-            const srcbytes = dumpinfostr.hexToBytes();
-            let unpackjsonstr: string = "";
-            let unpackjson: {};
+        try {
+            const dumpResult = await getDumpInfoByTxid(txid);
+            this.initNotify();
+            if (dumpResult) {
+                this.isStart = true;
+                this.currentTxid = txid;
+                outputStore.toPage("stack");
+                const dumpinfostr = dumpResult[ 0 ][ 'dimpInfo' ];
+                const lzma: nid.LZMA = new nid.LZMA();
+                nid.utils.MEMORY.reset();
+                const srcbytes = dumpinfostr.hexToBytes();
+                let unpackjsonstr: string = "";
+                let unpackjson: {};
 
-            try {
-                const destbytes = lzma.decode(srcbytes);
-                // console.log("decode got: srcsize=" + srcbytes.length + " destsize=" + destbytes.length);
-                unpackjsonstr = ThinNeo.Helper.Bytes2String(destbytes);
-                // console.log("jsonstr =" + unpackjsonstr);
-                unpackjson = JSON.parse(unpackjsonstr);
-                // console.log("convert to json . log to console");
-            }
-            catch (e) {
-                console.log("decode error." + e);
-                return;
-            }
+                try {
+                    const destbytes = lzma.decode(srcbytes);
+                    // console.log("decode got: srcsize=" + srcbytes.length + " destsize=" + destbytes.length);
+                    unpackjsonstr = ThinNeo.Helper.Bytes2String(destbytes);
+                    // console.log("jsonstr =" + unpackjsonstr);
+                    unpackjson = JSON.parse(unpackjsonstr);
+                    // console.log("convert to json . log to console");
+                }
+                catch (e) {
+                    console.log("decode error." + e);
+                    return;
+                }
 
-            if (unpackjson != null) {
-                const dumpinfo = ThinNeo.SmartContract.Debug.DumpInfo.FromJson(unpackjson);
-                this.simVM = new ThinNeo.Debug.SimVM();
-                this.simVM.Execute(dumpinfo);
-                this.dumpinfo = "";
-                // 预先获得所有需要加载的 avm等信息
-                // this.showCareInfo(this.simVM.careinfo)
-                // // this.careInfo.setValue(careInfoStr)
-                // this.stackarr = [];
-                this.dumpScript(this.simVM.regenScript, 1);
+                if (unpackjson != null) {
+                    const dumpinfo = ThinNeo.SmartContract.Debug.DumpInfo.FromJson(unpackjson);
+                    this.simVM = new ThinNeo.Debug.SimVM();
+                    this.simVM.Execute(dumpinfo);
+                    this.dumpinfo = "";
+                    // 预先获得所有需要加载的 avm等信息
+                    this.showCareInfo(this.simVM.careinfo)
+                    // this.careInfo.setValue(careInfoStr)
+                    // this.stackarr = [];
+                    this.dumpScript(this.simVM.regenScript, 1);
 
-                // this.fulllogEditor.on("cursorActivity", (res) =>
-                // {
-                //     this.debug()
-                // })
+                    // this.fulllogEditor.on("cursorActivity", (res) =>
+                    // {
+                    //     this.debug()
+                    // })
+                }
             }
+            else {
+                notification.error({ "message": "当前交易未收录" })
+            }
+        } catch (error) {
+            notification.error({ "message": "当前交易未收录" })
         }
     }
 
@@ -141,7 +149,12 @@ class DebugStore implements IDebugStore {
 
         // tslint:disable-next-line:prefer-for-of
         for (let i = 0; i < script.ops.length; i++) {
-            this.addAvmStr(space + "op : " + script.ops[ i ].GetHeader());
+            const str = script.ops[ i ].GetHeader();
+            console.log(str);
+            if (str === '13:PUSHBYTES1') {
+                console.log(str);
+            }
+            this.addAvmStr(space + "op : " + str);
             if (script.ops[ i ].GetHeader().includes("APPCALL")) {
                 const arr = [];
                 // 预先获得所有需要加载的 avm等信息

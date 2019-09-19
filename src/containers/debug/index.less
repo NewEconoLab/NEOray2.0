@@ -39,15 +39,28 @@
             height: 100%;
             #fulllog-editor{
                 height: 100%;
-                .monaco-editor .margin-view-overlays .current-line-margin{
+                // .monaco-editor .margin-view-overlays .current-line-margin{
+                //     background: url("../../img/debug-line.png");
+                //     background-size: contain;
+                //     background-repeat: no-repeat;
+                //     border: 0px solid rgb(75, 75, 24);
+                // }
+                // .monaco-editor .view-overlays .current-line{
+                //     background: rgb(75, 75, 24);
+                //     border: 2px solid rgb(75, 75, 24);
+                // }
+                
+                .monaco-editor .margin-view-overlays .debug-line {
                     background: url("../../img/debug-line.png");
-                    background-size: contain;
+                    background-size: cover;
                     background-repeat: no-repeat;
-                    border: 0px solid rgb(75, 75, 24);
+                    left: 0px;
+                    // border: 2px solid rgb(75, 75, 24);
                 }
-                .monaco-editor .view-overlays .current-line{
+                .monaco-editor .view-overlays .debug-line{
                     background: rgb(75, 75, 24);
-                    border: 2px solid rgb(75, 75, 24);
+                    // border: 2px solid rgb(75, 75, 24);
+                    width: 100%;
                 }
             }
             #notify-editor{

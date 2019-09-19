@@ -21,6 +21,7 @@ interface IProps {
 	defaultValue?: string | number,
 	current?: IOptions;
 	value?: string;
+	disable?: boolean;
 	onChange?: (value: string) => void
 }
 
@@ -76,22 +77,23 @@ export default class Search extends React.Component<IProps, IState> {
 		}
 	}
 
-	public onChange = (event) => {
-		this.setState({ value: event.target.value }, () => {
-			if (this.props.onChange) {
-				this.props.onChange(event.target.value);
-			}
-		})
+	public onChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+		if (this.props.onChange && !this.props.disable) {
+			this.props.onChange(event.target.value ? event.target.value : "");
+			this.setState({ value: event.target.value })
+		}
 	}
 
 	// 展开
 	public onExpand = (e) => {
-		// 取反
-		const expand = !this.state.expand;
+		if (!this.props.disable) {
+			// 取反
+			const expand = !this.state.expand;
 
-		this.setState({
-			expand: expand
-		});
+			this.setState({
+				expand: expand
+			});
+		}
 
 		e.stopPropagation();
 	}
