@@ -8,6 +8,7 @@ import Toast from '@/components/Toast';
 import { notification } from 'antd';
 import { ISupportStore } from './store/interface/support.interface';
 import { IIntl } from '@/store/interface/intl.interface';
+import { IDebugStore } from '../debug/store/interface/debug.interface';
 
 interface IProps {
     route: {
@@ -17,8 +18,9 @@ interface IProps {
     common: ICommonStore,
     support: ISupportStore,
     intl: IIntl,
+    debug: IDebugStore,
 }
-@inject('common', 'support', 'intl')
+@inject('common', 'support', 'intl', 'debug')
 @observer
 export default class Support extends React.Component<IProps> {
 
@@ -30,6 +32,7 @@ export default class Support extends React.Component<IProps> {
             this.props.common.login();
         }
         this.props.support.initClaimState();
+        this.props.debug.stopDebug();
     }
 
     public render() {
