@@ -84,42 +84,45 @@ export default class Deploy extends React.Component<IProps, IState> {
                 <div className="header" >
                     { this.props.intl.message.deploy[ 1 ] }
                 </div>
-                <div className="compile-box">
-                    <div className="line">
-                        <Select text="" ref={ this.selected } options={ this.options } placeholder="选择编译器" />
+
+                <div className="sidebar-body">
+                    <div className="compile-box">
+                        <div className="line">
+                            <Select text="" ref={ this.selected } options={ this.options } placeholder="选择编译器" />
+                        </div>
+                        <Button text={ this.props.intl.message.button[ 1 ] } btnSize="bg-btn" onClick={ this.onCompile } />
                     </div>
-                    <Button text={ this.props.intl.message.button[ 1 ] } btnSize="bg-btn" onClick={ this.onCompile } />
+                    { this.state.deploy &&
+                        <>
+                            <div className="result-box">
+                                <div className="result-header">
+                                    <div className="header-title">avm(hex)</div>
+                                    <a download={ this.state.scripthash + ".avm" } href={ this.state.download }>
+                                        <Button text={ this.props.intl.message.button[ 10 ] } btnSize="sm-btn" />
+                                    </a>
+                                </div>
+                                <div className="avmbox" >{ this.state.avmhex }</div>
+                                <div className="result-header">hash</div>
+                                <div className="copy-input">
+                                    <input className="copy-value" disabled={ true } value={ this.state.scripthash } onChange={ this.handleHashOnChange } />
+                                    <div className="copy-icon" onClick={ this.onCopyHash }><img src={ require("@/img/copy.png") } alt="" /></div>
+                                </div>
+                            </div>
+                            <div className="deploy-box">
+                                <div className="deploy-header">{ this.props.intl.message.deploy[ 4 ] }</div>
+                                <Input type="text" value={ this.state.name } onChange={ this.handleNameOnChange } />
+                                <div className="deploy-consloe">
+                                    <Checkbox text={ this.props.intl.message.deploy[ 5 ] } onClick={ this.handleCallOnClick } value={ this.state.call } />
+                                    <Checkbox text={ this.props.intl.message.deploy[ 6 ] } onClick={ this.handleStorageOnClick } value={ this.state.storage } />
+                                    <Checkbox text={ this.props.intl.message.deploy[ 7 ] } onClick={ this.handlePaymentOnClick } value={ this.state.payment } />
+                                    <Button text={ this.props.intl.message.button[ 11 ] } btnSize="bg-btn" onClick={ this.onDeploy } />
+                                    <div className="description">{ this.props.intl.message.deploy[ 8 ] }{ (this.state.call ? 500 : 0) + (this.state.storage ? 400 : 0) + 90 + 11 }GAS</div>
+                                    <div className="description">{ this.props.intl.message.deploy[ 9 ] }{ this.props.common.gasBalance }GAS</div>
+                                </div>
+                            </div>
+                        </>
+                    }
                 </div>
-                { this.state.deploy &&
-                    <>
-                        <div className="result-box">
-                            <div className="result-header">
-                                <div className="header-title">avm(hex)</div>
-                                <a download={ this.state.scripthash + ".avm" } href={ this.state.download }>
-                                    <Button text={ this.props.intl.message.button[ 10 ] } btnSize="sm-btn" />
-                                </a>
-                            </div>
-                            <div className="avmbox" >{ this.state.avmhex }</div>
-                            <div className="result-header">hash</div>
-                            <div className="copy-input">
-                                <input className="copy-value" disabled={ true } value={ this.state.scripthash } onChange={ this.handleHashOnChange } />
-                                <div className="copy-icon" onClick={ this.onCopyHash }><img src={ require("@/img/copy.png") } alt="" /></div>
-                            </div>
-                        </div>
-                        <div className="deploy-box">
-                            <div className="deploy-header">{ this.props.intl.message.deploy[ 4 ] }</div>
-                            <Input type="text" value={ this.state.name } onChange={ this.handleNameOnChange } />
-                            <div className="deploy-consloe">
-                                <Checkbox text={ this.props.intl.message.deploy[ 5 ] } onClick={ this.handleCallOnClick } value={ this.state.call } />
-                                <Checkbox text={ this.props.intl.message.deploy[ 6 ] } onClick={ this.handleStorageOnClick } value={ this.state.storage } />
-                                <Checkbox text={ this.props.intl.message.deploy[ 7 ] } onClick={ this.handlePaymentOnClick } value={ this.state.payment } />
-                                <Button text={ this.props.intl.message.button[ 11 ] } btnSize="bg-btn" onClick={ this.onDeploy } />
-                                <div className="description">{ this.props.intl.message.deploy[ 8 ] }{ (this.state.call ? 500 : 0) + (this.state.storage ? 400 : 0) + 90 + 11 }GAS</div>
-                                <div className="description">{ this.props.intl.message.deploy[ 9 ] }{ this.props.common.gasBalance }GAS</div>
-                            </div>
-                        </div>
-                    </>
-                }
             </>
         )
     }

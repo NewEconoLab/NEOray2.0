@@ -7,7 +7,7 @@ class CodeStore implements ICodeStore {
     @observable public filename: string = "";       // 文件名 xxx.cs xxx.py
     @observable public language: string = "python"  // 编译器语言 默认C#
     @observable public deploy: boolean = false;
-    @observable public option: editor.IEditorConstructionOptions = { selectOnLineNumbers: true, language: 'python' };  // 编译器的配置
+    @observable public option: editor.IEditorConstructionOptions = { selectOnLineNumbers: true, language: 'python', readOnly: false };  // 编译器的配置
     @observable public editor: editor.IStandaloneCodeEditor;
 
     // 代码变更

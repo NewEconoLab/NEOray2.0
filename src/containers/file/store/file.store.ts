@@ -25,14 +25,8 @@ class FileStore implements IFileStore {
         const files = localStorage.getItem('NEORAY_NOT_DEPLOYED_FILES');
         let arr: any[] = [];
         const index = filename.lastIndexOf("\.");
-        console.log('index', index);
-
         let language = filename.substring(index + 1, filename.length);
-        console.log('language', language);
-
         let name = filename.substring(0, index);
-        console.log('name', name);
-
         if (language !== "py" && language !== "cs") {
             name = filename;
             language = 'cs';
@@ -41,7 +35,7 @@ class FileStore implements IFileStore {
         if (files) {
             arr = JSON.parse(files);
         }
-        arr.push({ id, name, language })
+        arr.push({ id, name: name ? name : "untitled", language })
         this.filelist = arr;
         console.log('filelist', arr);
 
@@ -58,16 +52,21 @@ class FileStore implements IFileStore {
         const index = filename.lastIndexOf("\.");
         console.log('index', index);
 
-        const language = filename.substring(index + 1, filename.length);
+        let language = filename.substring(index + 1, filename.length);
         console.log('language', language);
 
-        const name = filename.substring(0, index);
+        let name = filename.substring(0, index);
+
+        if (language !== "py" && language !== "cs") {
+            name = filename;
+            language = 'cs';
+        }
         const files = localStorage.getItem('NEORAY_NOT_DEPLOYED_FILES');
         let arr: any[] = [];
         if (files) {
             arr = JSON.parse(files);
             arr = arr.map(item => {
-                return item.id === id ? { id, name, language } : item;
+                return item.id === id ? { id, name: name ? name : "untitled", language } : item;
             })
         }
         localStorage.setItem("NEORAY_NOT_DEPLOYED_FILES", JSON.stringify(arr));

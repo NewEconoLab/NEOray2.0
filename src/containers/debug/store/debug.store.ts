@@ -52,6 +52,9 @@ class DebugStore implements IDebugStore {
                 this.isStart = true;
                 this.currentTxid = txid;
                 outputStore.toPage("stack");
+                const codeoption = codeStore.option;
+                codeoption[ 'readOnly' ] = true;
+                codeStore.option = codeoption;
                 const dumpinfostr = dumpResult[ 0 ][ 'dimpInfo' ];
                 const lzma: nid.LZMA = new nid.LZMA();
                 nid.utils.MEMORY.reset();
@@ -71,7 +74,6 @@ class DebugStore implements IDebugStore {
                     console.log("decode error." + e);
                     return;
                 }
-
                 if (unpackjson != null) {
                     const dumpinfo = ThinNeo.SmartContract.Debug.DumpInfo.FromJson(unpackjson);
                     this.simVM = new ThinNeo.Debug.SimVM();
@@ -107,6 +109,9 @@ class DebugStore implements IDebugStore {
             // this.txlist = []
             this.oplist = [];
             this.stackarr = [];
+            const codeoption = codeStore.option;
+            codeoption[ 'readOnly' ] = false;
+            codeStore.option = codeoption;
             const div = document.getElementById("calcstack-content") as HTMLDivElement;
             const div1 = document.getElementById("altstack-content") as HTMLDivElement;
             const div2 = document.getElementById("valuetool") as HTMLDivElement;

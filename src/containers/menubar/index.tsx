@@ -153,15 +153,25 @@ export default class Menubar extends React.Component<IProps, IState>{
                         </ul>
                     </div>
                     <div className="language-toggle" id="language">
+                        <div style={ { marginBottom: "50px" } }>
+                            <img
+                                src={ require('@/img/back.png') }
+                                onClick={ this.goBack }
+                            />
+                            <div className="language-info">Back To<br />V 1.0</div>
+                        </div>
                         <img
                             src={
                                 this.props.common.language === "en" ?
                                     require('@/img/lan-en.png') :
                                     require('@/img/lan-ch.png') }
-                            width={ 20 }
-                            height={ 20 }
                             onClick={ this.onClickLanguage }
                         />
+                        <div className="language-info">
+                            {
+                                this.props.common.language === "en" ? "EN" : "CH"
+                            }
+                        </div>
                     </div>
                 </div>
                 {
@@ -185,6 +195,11 @@ export default class Menubar extends React.Component<IProps, IState>{
                 this.props.onSidebarChange(this.state.currentState);
             })
         }
+    }
+
+    private goBack = () => {
+        window.open("https://neoray.nel.group/1.0")
+
     }
 
     // 切换语言

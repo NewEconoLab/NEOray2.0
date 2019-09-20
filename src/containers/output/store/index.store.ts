@@ -6,7 +6,6 @@ class OutputboxStore implements IOutputStore {
     @action public addOutputMessage = (message: IOutputMessage) => {
         this.outputList.push(message);
         sessionStorage.setItem("NEORAY_OUTPUT_STORAGER", JSON.stringify(this.outputList))
-
         const div = document.getElementById('outputbox');
         if (div) {
             setTimeout(() => {
@@ -15,7 +14,7 @@ class OutputboxStore implements IOutputStore {
                 if (drag) {
                     drag.scrollTop = div.scrollHeight;
                 }
-            }, 500);
+            }, 100);
         }
     }
     @action public initOutputMessage = () => {

@@ -6028,6 +6028,7 @@ var ThinNeo;
                     var op = ThinNeo.OpCode[opstr];
                     if (op == undefined)
                         op = parseInt(opstr);
+                    console.log(addr,op);           
                     var _op = new LogOp(addr, op);
                     if (json["stack"] != undefined) {
                         var array = json["stack"];

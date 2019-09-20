@@ -68,7 +68,7 @@ export default class SelectFile extends React.Component<IProps> {
                         </div>
                     </div>
                 </div>
-                <div className="selectfile-tree">
+                <div className="sidebar-body">
                     { this.props.file.filelist.length > 0 &&
                         <FileTree title={ this.props.intl.message.files[ 5 ] }>
                             { this.props.file.filelist.map((item, key) => {
