@@ -114,7 +114,7 @@ export default class OutputBox extends React.Component<IOutputProps> {
             })
         }
         else {
-            return <div className="output-item" key={ index + OutputType[ item.type ] + "title" }>{ item.title }</div>
+            return <div className="output-item title" key={ index + OutputType[ item.type ] + "title" }>{ item.title }</div>
         }
     }
 
