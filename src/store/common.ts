@@ -111,7 +111,7 @@ class Common implements ICommonStore {
     }
 
     @action public initAccountBalance = async () => {
-        console.log(this.address, HASH_CONFIG.ID_GAS);
+        // console.log(this.address, HASH_CONFIG.ID_GAS);
 
         const result = await Wallet.getBalance(HASH_CONFIG.ID_GAS);
         if (result) {

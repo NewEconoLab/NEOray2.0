@@ -6,6 +6,7 @@ import { observer } from 'mobx-react';
 import EventHandler from '@/utils/event';
 import classnames from 'classnames';
 import './index.less';
+import { format } from '@/utils/formatTime';
 export interface IOptions {
 	txid: string,
 	time: string,
@@ -22,7 +23,7 @@ interface IProps {
 	current?: IOptions;
 	value?: string;
 	disable?: boolean;
-	onChange?: (value: string) => void
+	onChange?: (value: string) => void,
 }
 
 interface IState {
@@ -40,7 +41,7 @@ export default class Search extends React.Component<IProps, IState> {
 		value: ""
 	}
 	public componentDidMount() {
-		if (this.props.defaultValue) {
+		/*if (this.props.defaultValue) {
 			this.setState({
 				options: this.props.options.filter((item) => item.time === this.props.defaultValue)[ 0 ]
 			}, () => {
@@ -48,7 +49,7 @@ export default class Search extends React.Component<IProps, IState> {
 					this.props.onCallback(this.state.options);
 				}
 			});
-		} else if (!this.props.placeholder) {
+		} else */if (!this.props.placeholder) {
 			this.setState({
 				options: this.props.options[ 0 ]
 			});
@@ -132,23 +133,28 @@ export default class Search extends React.Component<IProps, IState> {
 				<div className={ selectBox } style={ this.props.style }>
 					<div className="ul">
 						{
-							options.map((item, index) => {
-								return (
-									<div className="li" key={ index } onClick={ this.onSelect.bind(this, item) }>
-										{/* <div className={ `box-icon ${!!!item.icon ? 'noicon' : ''}` }>
+							options.length > 0 ?
+								options.map((item, index) => {
+									return (
+										<div className="li" key={ index } onClick={ this.onSelect.bind(this, item) }>
+											{/* <div className={ `box-icon ${!!!item.icon ? 'noicon' : ''}` }>
 											{ !!item.icon && <img src={ item.icon } alt="" /> }
 										</div> */}
-										<div className="box-text">
-											<div style={ { float: "left" } }>
-												{ item.txid.substr(0, 4) }...{ item.txid.substr(item.txid.length - 4, 4) }
-											</div>
-											<div style={ { float: "right" } }>
-												{ item.time.toLocaleUpperCase() }
+											<div className="box-text">
+												<div style={ { float: "left" } }>
+													{ item.txid.substr(0, 4) }...{ item.txid.substr(item.txid.length - 4, 4) }
+												</div>
+												<div style={ { float: "right" } }>
+													{ format('yyyy/MM/dd hh:mm:ss', item.time) }
+												</div>
 											</div>
 										</div>
-									</div>
-								);
-							})
+									);
+								})
+								:
+								<div className="li">
+									<div className="box-text">{ this.props.defaultValue }</div>
+								</div>
 						}
 					</div>
 				</div>

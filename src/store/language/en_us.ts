@@ -71,6 +71,7 @@ export default {
     9: "Parameter",
     10: "None",
     11: "Array",
+    12: "No TX record for the contract",
   },
   about: {
     1: "Support",
