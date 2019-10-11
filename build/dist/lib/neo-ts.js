@@ -170,7 +170,7 @@ var nid;
             }
             if ( this.decoder.rangeDec.corrupted )
             {
-                console.log( "Warning: LZMA stream is corrupted" );
+                // console.log( "Warning: LZMA stream is corrupted" );
             }
             return this.decoder.outWindow.outStream;
         };
@@ -666,7 +666,7 @@ var nid;
                 }
                 else
                 {
-                    console.log( 'Warning! Another LZMA decoding is running...' );
+                    // console.log( 'Warning! Another LZMA decoding is running...' );
                 }
             };
             LZMAHelper.decoder = new LZMA();
@@ -2892,7 +2892,7 @@ var ThinNeo;
             };
             scrypt.onload = function ()
             {
-                console.log( "scrypt.onload" );
+                // console.log( "scrypt.onload" );
                 scrypt_loaded = true;
                 ready();
             };
@@ -2903,7 +2903,7 @@ var ThinNeo;
             };
             scrypt.oncomplete = function ( dk )
             {
-                console.log( 'done', scrypt.binToHex( dk ) );
+                // console.log( 'done', scrypt.binToHex( dk ) );
                 var u8dk = new Uint8Array( dk );
                 var derivedhalf1 = u8dk.subarray( 0, 32 );
                 var derivedhalf2 = u8dk.subarray( 32, 64 );
@@ -2942,7 +2942,7 @@ var ThinNeo;
             };
             scrypt.onprogress = function ( percent )
             {
-                console.log( 'onprogress' );
+                // console.log( 'onprogress' );
             };
             scrypt.onready = function ()
             {
@@ -3024,13 +3024,13 @@ var ThinNeo;
             };
             scrypt.onload = function ()
             {
-                console.log( "scrypt.onload" );
+                // console.log( "scrypt.onload" );
                 scrypt_loaded = true;
                 ready();
             };
             scrypt.oncomplete = function ( dk )
             {
-                console.log( 'done', scrypt.binToHex( dk ) );
+                // console.log( 'done', scrypt.binToHex( dk ) );
                 var u8dk = new Uint8Array( dk );
                 var derivedhalf1 = u8dk.subarray( 0, 32 );
                 var derivedhalf2 = u8dk.subarray( 32, 64 );
@@ -3065,7 +3065,7 @@ var ThinNeo;
             };
             scrypt.onprogress = function ( percent )
             {
-                console.log( 'onprogress' );
+                // console.log( 'onprogress' );
             };
             scrypt.onready = function ()
             {
@@ -6675,6 +6675,8 @@ var ThinNeo;
                 }
                 MethodInfo.prototype.Add = function ( line, addr )
                 {
+                    // console.log( "Add", `line:${ line }, addr:${ addr }` );
+
                     if ( this.line2addr[ line ] == undefined )
                     {
                         this.line2addr[ line ] = addr;
@@ -6820,17 +6822,47 @@ var ThinNeo;
                 };
                 AddrMap.prototype.GetLineBack = function ( addr )
                 {
-                    for ( var _i = this.methods.length - 1; _i >= 0; _i-- )
+                    // console.log( 'addr map methods', this.methods );
+                    var currentAddr = -1;
+                    var currentM;
+                    for ( var index = 0; index < this.methods.length; index++ )
                     {
-                        var m = this.methods[ _i ];
-                        var i = m.GetLineBack( addr );
-                        if ( i > 0 )
-                            return i;
+                        var m = this.methods[ index ];
+                        if ( addr >= m.startAddr && m.startAddr >= currentAddr )
+                        {
+                            currentAddr = m.startAddr
+                            currentM = m;
+                            // console.log( 'currentAddr', currentAddr );
+                        }
                     }
-                    return -1;
+                    if ( currentM )
+                    {
+                        var i = currentM.GetLineBack( addr );
+                        return i ? i : -1;
+                    }
+                    else
+                    {
+                        return -1;
+                    }
+
+                    // // console.log( 'currentAddr', currentAddr );
+
+
+                    // for ( var _i = this.methods.length - 1; _i >= 0; _i-- )
+                    // {
+                    //     var m = this.methods[ _i ];
+                    //     var i = m.GetLineBack( addr );
+                    //     // console.log( 'line', i );
+
+                    //     if ( i > 0 )
+                    //         return i;
+                    // }
+                    // return -1;
                 };
                 AddrMap.FromJson = function ( json )
                 {
+                    // console.log( 'AddrMap json', json );
+
                     var info = new AddrMap();
                     for ( var key in json )
                     {
@@ -6841,9 +6873,12 @@ var ThinNeo;
                         var map = item[ "map" ];
                         for ( var i = 0; i < map.length; i++ )
                         {
-                            var mapitem = map[ i ];
-                            var src = parseInt( mapitem.substr( 5 ) );
-                            var addr = parseInt( mapitem.substr( 0, 4 ), 16 );
+                            // var mapitem = map[ i ];
+                            // var src = parseInt( mapitem.substr( 5 ) );
+                            // var addr = parseInt( mapitem.substr( 0, 4 ), 16 );
+                            var mapitem = map[ i ].split( '-' );
+                            var src = parseInt( mapitem[ 1 ] );
+                            var addr = parseInt( mapitem[ 0 ], 16 );
                             if ( src < 0 || src >= 0xffff )
                                 continue;
                             minfo.Add( src, addr );
@@ -6855,6 +6890,8 @@ var ThinNeo;
                             return a.startAddr - b.startAddr;
                         } );
                     }
+                    // console.log( 'addr info', info );
+
                     return info;
                 };
                 return AddrMap;
@@ -7098,7 +7135,7 @@ var ThinNeo;
                     this.op = op;
                     // if ( op == undefined )
                     // {
-                    //     console.log( "what a fuck" );
+                    //     // console.log( "what a fuck" );
                     // }
                     LogOp.__guid++;
                     this.thisguid = LogOp.__guid;
