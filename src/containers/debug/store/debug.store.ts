@@ -25,7 +25,7 @@ class DebugStore implements IDebugStore {
     public contractFiles: {} = {};
     public simVM: ThinNeo.Debug.SimVM;
     @action public initTxList = async () => {
-        this.txlist = [];
+        // this.txlist = [];
         // this.currentTxid = "";
         if (common.address && codeStore.deploy) {
             try {
@@ -150,16 +150,17 @@ class DebugStore implements IDebugStore {
         else {
             this.addAvmStr("hash : " + script.hash);
         }
-        this.stackarr.push(undefined);
+        // console.log("hash : " + script.hash, undefined);
 
+        this.stackarr.push(undefined);
         // tslint:disable-next-line:prefer-for-of
         for (let i = 0; i < script.ops.length; i++) {
             const str = script.ops[ i ].GetHeader();
-            console.log(str);
-            if (str === '13:PUSHBYTES1') {
-                console.log(str);
-            }
+            // console.log(str);
+            // this.stackarr.push(undefined);
             this.addAvmStr(space + "op : " + str);
+            this.stackarr.push({ script: script, op: script.ops[ i ] });
+            // console.log(space + "op : " + str, { script: script, op: script.ops[ i ] });
             if (script.ops[ i ].GetHeader().includes("APPCALL")) {
                 const arr = [];
                 // 预先获得所有需要加载的 avm等信息
@@ -170,9 +171,9 @@ class DebugStore implements IDebugStore {
             }
 
             if (script.ops[ i ].subScript != null) {
+                // this.stackarr.push(undefined);
                 this.dumpScript(script.ops[ i ].subScript, level + 1);
             }
-            this.stackarr.push({ script: script, op: script.ops[ i ] });
         }
         if (level === 1) {
             this.dumpstr = this.dumpinfo

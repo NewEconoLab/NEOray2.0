@@ -49,6 +49,7 @@ export default class Debug extends React.Component<IDebugProps> {
                             value={ this.props.debug.currentTxid }
                             disable={ !!this.props.debug.isStart }
                             defaultValue={ this.props.intl.message.debug[ 12 ] }
+                            onClick={ this.initTxList }
                             text="" />
                         { this.props.debug.isStart ?
                             <Button text={ this.props.intl.message.button[ 5 ] } btnSize="bg-btn" onClick={ this.debugOnStop } /> :

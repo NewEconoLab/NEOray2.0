@@ -30,7 +30,7 @@ export default class DownloadTeemo extends React.Component<ICommonProps> {
                     {
                         this.props.common.isLoginFlag === 2 &&
                         <>
-                            <div className="download-text">用户信息获取失败，请先登陆Teemo钱包</div>
+                            <div className="download-text">{ this.props.intl.message.toast[ 14 ] }</div>
                             <div className="download-btn-wrapper">
                                 <Button text={ this.props.intl.message.button[ 12 ] } onClick={ this.handleToCloseTeemoTips } btnSize="bg-btn" />
                             </div>

@@ -105,9 +105,10 @@ export default {
     11: "未检测到Teemo钱包，您将无法部署、调用合约。请安装登陆钱包后使用此功能",
     12: "前往Teemo官网",
     13: "提示",
+    14: "用户信息获取失败，请先登陆Teemo钱包",
   },
   url: {
-    invoke: "https://bbs.neldev.net/thread-146",
-    debug: "https://bbs.neldev.net/thread-147",
+    invoke: "http://bbs.neldev.net/thread-146",
+    debug: "http://bbs.neldev.net/thread-147",
   }
 }

@@ -11,7 +11,7 @@ export default {
     9: "Debug",
     10: "Download",
     11: "Deploy contract",
-    12: "Confrim",
+    12: "Confirm",
     13: "Cancel",
   },
   code: {
@@ -34,7 +34,6 @@ export default {
     14: "Load deployed contract",
     15: "Delete file"
   },
-
   deploy: {
     1: "Contract deployment",
     2: "C#compiler",
@@ -60,7 +59,7 @@ export default {
     11: "Array",
   },
   debug: {
-    1: "Contract deployment",
+    1: "Contract debugging",
     2: "The current contract has not been deployed and cannot be called",
     3: "Please deploy contract first",
     4: "Call",
@@ -106,9 +105,10 @@ export default {
     11: "If the Teemo wallet is not detected, you will not be able to deploy and call the contract. Please use this function after installing the login wallet.",
     12: "Go to Teemo's official website",
     13: "Prompt",
+    14: "Failed to get user info. Please log in to Teemo.",
   },
   url: {
-    invoke: "https://medium.com/neweconolab/the-construction-method-of-parameters-that-call-contracts-f3964a2cbd9b",
-    debug: "https://medium.com/neweconolab/the-help-instructions-of-contract-debugging-e1dfd75ccfd1",
+    invoke: "http://medium.com/neweconolab/the-construction-method-of-parameters-that-call-contracts-f3964a2cbd9b",
+    debug: "http://medium.com/neweconolab/the-help-instructions-of-contract-debugging-e1dfd75ccfd1",
   }
 }

@@ -24,6 +24,7 @@ interface IProps {
 	value?: string;
 	disable?: boolean;
 	onChange?: (value: string) => void,
+	onClick?: () => void
 }
 
 interface IState {
@@ -94,6 +95,9 @@ export default class Search extends React.Component<IProps, IState> {
 			this.setState({
 				expand: expand
 			});
+			if (expand && this.props.onClick) {
+				this.props.onClick()
+			}
 		}
 
 		e.stopPropagation();
