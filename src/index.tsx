@@ -18,10 +18,19 @@ global.Intl = Intl;
 window[ 'Intl' ] = Intl;
 // common.setTimeGetBlock();
 
-window.addEventListener('Teemo.NEO.READY', () => {
+window.addEventListener('Teemo.NEO.READY', (data: CustomEvent) => {
     common.isLoadTeemo = true;
     common.getSessionAddress();
     common.isSetedAddress = true;
+    const name = data.detail.name;
+    if (!name.includes("NEO3")) {
+        const locations = window.location;
+        Teemo.NEO.getNetworks()
+            .then(result => {
+                const base = result.defaultNetwork === 'MainNet' ? '' : '/test';
+                window.location.replace(`${location.origin}${base || ''}${locations.pathname.replace('/test', '')}${locations.search}${locations.hash}`);
+            })
+    }
     // common.initAccountBalance();
 });
 
