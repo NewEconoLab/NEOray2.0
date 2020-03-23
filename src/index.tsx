@@ -44,10 +44,10 @@ setTimeout(() => {
 window.addEventListener('Teemo.NEO.NETWORK_CHANGED', (data: CustomEvent) => {
     console.log("inject NETWORK_CHANGED ");
     console.log(data.detail.networks[ 0 ]);
-    const base = data.detail.networks[ 0 ] === 'MainNet' ? '' : '/test';
-    const locations = window.location;
+    // const base = data.detail.networks[ 0 ] === 'MainNet' ? '' : '/test';
+    // const locations = window.location;
     // console.log(`${location.origin}${base || ''}${locations.pathname}${locations.search}${locations.hash}`)
-    window.location.replace(`${location.origin}${base || ''}${locations.pathname.replace('/test', '')}${locations.search}${locations.hash}`);
+    // window.location.replace(`${location.origin}${base || ''}${locations.pathname.replace('/test', '')}${locations.search}${locations.hash}`);
 })
 // 账户变更
 window.addEventListener('Teemo.NEO.ACCOUNT_CHANGED', (data: CustomEvent) => {
