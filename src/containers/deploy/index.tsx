@@ -81,7 +81,7 @@ export default class Deploy extends React.Component<IProps, IState> {
             <>
                 <div className="header" >
                     { this.props.intl.message.deploy[ 1 ] }
-                    <div className="network neo3">NEO3测试网</div>
+                    <div className="network neo3">{ this.props.intl.message.network.neo3test }</div>
                 </div>
 
                 <div className="sidebar-body">

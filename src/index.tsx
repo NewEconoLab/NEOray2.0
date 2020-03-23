@@ -23,13 +23,9 @@ window.addEventListener('Teemo.NEO.READY', (data: CustomEvent) => {
     common.getSessionAddress();
     common.isSetedAddress = true;
     const name = data.detail.name;
+    const locations = window.location;
     if (!name.includes("NEO3")) {
-        const locations = window.location;
-        Teemo.NEO.getNetworks()
-            .then(result => {
-                const base = result.defaultNetwork === 'MainNet' ? '' : '/test';
-                window.location.replace(`${location.origin}${base || ''}${locations.pathname.replace('/test', '')}${locations.search}${locations.hash}`);
-            })
+        window.location.replace(`${location.origin}${locations.search}${locations.hash}`);
     }
     // common.initAccountBalance();
 });

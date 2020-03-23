@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Switch, HashRouter } from 'react-router-dom';
+import { Switch, BrowserRouter } from 'react-router-dom';
 import { renderRoutes } from 'react-router-config';
 import { Provider, observer } from "mobx-react";
 import { IntlProvider, addLocaleData } from 'react-intl';
@@ -37,25 +37,25 @@ export default () => {
   if (process.env.REACT_APP_SERVER_ENV === 'DEV') {
     return (
       <Provider { ...store }>
-        <HashRouter basename="test">
+        <BrowserRouter basename="">
           <Layout>
             <Switch>
               <ObserverRender />
             </Switch>
           </Layout>
-        </HashRouter>
+        </BrowserRouter>
       </Provider>
     );
   }
   return (
     <Provider { ...store }>
-      <HashRouter basename="test">
+      <BrowserRouter basename="">
         <Layout>
           <Switch>
             <ObserverRender />
           </Switch>
         </Layout>
-      </HashRouter>
+      </BrowserRouter>
     </Provider>
   );
 };

@@ -58,7 +58,7 @@ export default class Invoke extends React.Component<IProps, IState> {
                     <a href={ this.props.intl.message.url.invoke } target="_bank">
                         <img src={ q1 } alt="" />
                     </a>
-                    <div className="network neo3">NEO3测试网</div>
+                    <div className="network neo3">{ this.props.intl.message.network.neo3test }</div>
                 </div>
                 { this.props.code.deploy ?
                     <div className="invoke-box">

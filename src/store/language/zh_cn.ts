@@ -107,6 +107,11 @@ export default {
     13: "提示",
     14: "用户信息获取失败，请先登陆Teemo钱包",
   },
+  network: {
+    testnet: "测试网",
+    mainnet: "主网",
+    neo3test: "NEO3测试网",
+  },
   url: {
     invoke: "http://bbs.neldev.net/thread-146",
     debug: "http://bbs.neldev.net/thread-147",

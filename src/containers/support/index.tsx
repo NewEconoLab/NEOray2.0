@@ -40,7 +40,7 @@ export default class Support extends React.Component<IProps> {
             <>
                 <div className="header" >
                     { this.props.intl.message.about[ 1 ] }
-                    <div className="network neo3">NEO3测试网</div>
+                    <div className="network neo3">{ this.props.intl.message.network.neo3test }</div>
                 </div>
                 <div className="line-group">
                     <div className="line-title">{ this.props.intl.message.about[ 2 ] }</div>

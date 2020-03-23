@@ -15,6 +15,11 @@ export interface IIntl {
         url: {
             invoke: string;
             debug: string;
+        },
+        network: {
+            mainnet: string,
+            testnet: string,
+            neo3test: string
         }
     };
     initLanguage: () => void;

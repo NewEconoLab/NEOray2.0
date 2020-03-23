@@ -107,6 +107,11 @@ export default {
     13: "Prompt",
     14: "Failed to get user info. Please log in to Teemo.",
   },
+  network: {
+    mainnet: "MainNet",
+    testnet: "TestNet",
+    neo3test: "NEO3 TestNet",
+  },
   url: {
     invoke: "http://medium.com/neweconolab/the-construction-method-of-parameters-that-call-contracts-f3964a2cbd9b",
     debug: "http://medium.com/neweconolab/the-help-instructions-of-contract-debugging-e1dfd75ccfd1",
