@@ -39,59 +39,70 @@ export default class Debug extends React.Component<IDebugProps> {
                     <a href={ this.props.intl.message.url.debug } target="_bank">
                         <img src={ q1 } alt="" />
                     </a>
+                    {
+                        process.env.REACT_APP_SERVER_ENV === "PUB" &&
+                        <div className="network main">{ this.props.intl.message.network.mainnet }</div>
+                    }
+                    {
+                        process.env.REACT_APP_SERVER_ENV === "DEV" &&
+                        <div className="network test">{ this.props.intl.message.network.testnet }</div>
+                    }
                 </div>
                 <div className="debuginfo-box">
-                    <div className="button-box">
-                        <Search
-                            options={ this.props.debug.txlist }
-                            placeholder="Select Txid"
-                            onChange={ this.onTxidChange }
-                            value={ this.props.debug.currentTxid }
-                            disable={ !!this.props.debug.isStart }
-                            defaultValue={ this.props.intl.message.debug[ 12 ] }
-                            onClick={ this.initTxList }
-                            text="" />
-                        { this.props.debug.isStart ?
-                            <Button text={ this.props.intl.message.button[ 5 ] } btnSize="bg-btn" onClick={ this.debugOnStop } /> :
-                            <Button text={ this.props.intl.message.button[ 4 ] } btnSize="bg-btn" onClick={ this.debugOnStart } />
-                        }
-                    </div>
-                    { this.props.debug.isStart &&
-                        <div className="info-box">
-                            <div className="info-header">
-                                <div className={ avmlabel } onClick={ this.toLabel.bind(this, "avm") }>AVM</div>
-                                <div className={ carelabel } onClick={ this.toLabel.bind(this, "care") }>CareInfo</div>
-                                <div className={ loglabel } onClick={ this.toLabel.bind(this, "log") }>log/notify</div>
-                            </div>
-                            <div className="info-value">
-                                { this.state.label === "avm" &&
-                                    <div id="fulllog-editor">
-                                        <MonacoEditor
-                                            language="json"
-                                            // theme="hc-black"
-                                            theme="vs-dark"
-                                            value={ this.props.debug.dumpstr }
-                                            options={ { selectOnLineNumbers: false, readOnly: true, minimap: { enabled: false }, renderLineHighlight: 'all' } }
-                                            // onChange={ this.props.codeStore.onCodeChange }
-                                            editorDidMount={ this.editorDidMount }
-                                        />
-                                    </div>
-                                }
-                                { this.state.label === "log" &&
-                                    <div id="notify-editor">
-                                        <MonacoEditor
-                                            language="json"
-                                            theme="vs-dark"
-                                            value={ this.props.debug.notify }
-                                            options={ { selectOnLineNumbers: false, readOnly: true, minimap: { enabled: false } } }
-                                            // onChange={ this.props.codeStore.onCodeChange }
-                                            editorDidMount={ this.notifyEditorDidMount }
-                                        />
-                                    </div>
-                                }
-                                <div id="careInfo-msg" hidden={ this.state.label !== "care" } />
-                            </div>
+                    { process.env.REACT_APP_SERVER_ENV === "DEV" ? <>
+                        <div className="button-box">
+                            <Search
+                                options={ this.props.debug.txlist }
+                                placeholder="Select Txid"
+                                onChange={ this.onTxidChange }
+                                value={ this.props.debug.currentTxid }
+                                disable={ !!this.props.debug.isStart }
+                                defaultValue={ this.props.intl.message.debug[ 12 ] }
+                                onClick={ this.initTxList }
+                                text="" />
+                            { this.props.debug.isStart ?
+                                <Button text={ this.props.intl.message.button[ 5 ] } btnSize="bg-btn" onClick={ this.debugOnStop } /> :
+                                <Button text={ this.props.intl.message.button[ 4 ] } btnSize="bg-btn" onClick={ this.debugOnStart } />
+                            }
                         </div>
+                        { this.props.debug.isStart &&
+                            <div className="info-box">
+                                <div className="info-header">
+                                    <div className={ avmlabel } onClick={ this.toLabel.bind(this, "avm") }>AVM</div>
+                                    <div className={ carelabel } onClick={ this.toLabel.bind(this, "care") }>CareInfo</div>
+                                    <div className={ loglabel } onClick={ this.toLabel.bind(this, "log") }>log/notify</div>
+                                </div>
+                                <div className="info-value">
+                                    { this.state.label === "avm" &&
+                                        <div id="fulllog-editor">
+                                            <MonacoEditor
+                                                language="json"
+                                                // theme="hc-black"
+                                                theme="vs-dark"
+                                                value={ this.props.debug.dumpstr }
+                                                options={ { selectOnLineNumbers: false, readOnly: true, minimap: { enabled: false }, renderLineHighlight: 'all' } }
+                                                // onChange={ this.props.codeStore.onCodeChange }
+                                                editorDidMount={ this.editorDidMount }
+                                            />
+                                        </div>
+                                    }
+                                    { this.state.label === "log" &&
+                                        <div id="notify-editor">
+                                            <MonacoEditor
+                                                language="json"
+                                                theme="vs-dark"
+                                                value={ this.props.debug.notify }
+                                                options={ { selectOnLineNumbers: false, readOnly: true, minimap: { enabled: false } } }
+                                                // onChange={ this.props.codeStore.onCodeChange }
+                                                editorDidMount={ this.notifyEditorDidMount }
+                                            />
+                                        </div>
+                                    }
+                                    <div id="careInfo-msg" hidden={ this.state.label !== "care" } />
+                                </div>
+                            </div>
+                        }
+                    </> : this.props.intl.message.network.prompt
                     }
                 </div>
             </>

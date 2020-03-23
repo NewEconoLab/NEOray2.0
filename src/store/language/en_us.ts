@@ -10,7 +10,7 @@ export default {
     8: "Trial run",
     9: "Debug",
     10: "Download",
-    11: "Deploy contract",
+    11: process.env.REACT_APP_SERVER_ENV === "PUB" ? "Deployment contract on mainnet" : "Deploy contract",
     12: "Confirm",
     13: "Cancel",
   },
@@ -106,6 +106,12 @@ export default {
     12: "Go to Teemo's official website",
     13: "Prompt",
     14: "Failed to get user info. Please log in to Teemo.",
+  },
+  network: {
+    mainnet: "MainNet",
+    testnet: "TestNet",
+    neo3test: "NEO3 TestNet",
+    prompt: "This function is not supported on mainnet"
   },
   url: {
     invoke: "http://medium.com/neweconolab/the-construction-method-of-parameters-that-call-contracts-f3964a2cbd9b",

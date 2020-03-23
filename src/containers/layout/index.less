@@ -15,11 +15,34 @@
       font-size: 14px;
       color: #FFFFFF;
       border-bottom: #FFFFFF 1px solid;
+      position: relative;
       a{
         img{
           height: 16px;
           width: 16px;
           margin: 10px;
+        }
+      }
+      .network{    
+        /* float: right; */
+        /* border-radius: 10px; */
+        border-radius: 10px;
+        width: 90px;
+        height: 20px;
+        text-align: center;
+        line-height: 20px;
+        position: absolute;
+        top: 9px;
+        right: 15px;
+        font-size: 12px;
+        &.neo3{
+          background: #43C22F;
+        }
+        &.main{
+          background: #1267CB;
+        }
+        &.test{
+          background: #757575;
         }
       }
     }

@@ -38,7 +38,16 @@ export default class Support extends React.Component<IProps> {
     public render() {
         return (
             <>
-                <div className="header" >{ this.props.intl.message.about[ 1 ] }</div>
+                <div className="header" >{ this.props.intl.message.about[ 1 ] }
+                    {
+                        process.env.REACT_APP_SERVER_ENV === "PUB" &&
+                        <div className="network main">{ this.props.intl.message.network.mainnet }</div>
+                    }
+                    {
+                        process.env.REACT_APP_SERVER_ENV === "DEV" &&
+                        <div className="network test">{ this.props.intl.message.network.testnet }</div>
+                    }
+                </div>
                 <div className="line-group">
                     <div className="line-title">{ this.props.intl.message.about[ 2 ] }</div>
                     <div className="line-value">
@@ -52,20 +61,25 @@ export default class Support extends React.Component<IProps> {
                     <div className="line-title">{ this.props.intl.message.about[ 3 ] }</div>
                     <div className="line-value">{ this.props.common.gasBalance }</div>
                 </div>
-                <div className="line-btn">
-                    {
-                        this.props.support.claimState === "3010" &&
-                        <Button text={ this.props.intl.message.button[ 2 ] } btnSize="bg-btn" btnColor="gray-btn" onClick={ this.onClaimGas } />
-                    }
-                    {
-                        (this.props.support.claimState === "3011" || this.props.support.claimState === "3000") &&
-                        <Button text={ this.props.intl.message.button[ 3 ] } btnSize="bg-btn" btnColor="gray-btn" />
-                    }
-                    {
-                        (this.props.support.claimState === "3012" || this.props.support.claimState === "3003") &&
-                        <Button text={ this.props.intl.message.button[ 12 ] } btnSize="bg-btn" btnColor="gray-btn" />
-                    }
-                </div>
+                { process.env.REACT_APP_SERVER_ENV === "DEV" ?
+                    <div className="line-btn">
+                        {
+                            this.props.support.claimState === "3010" &&
+                            <Button text={ this.props.intl.message.button[ 2 ] } btnSize="bg-btn" btnColor="gray-btn" onClick={ this.onClaimGas } />
+                        }
+                        {
+                            (this.props.support.claimState === "3011" || this.props.support.claimState === "3000") &&
+                            <Button text={ this.props.intl.message.button[ 3 ] } btnSize="bg-btn" btnColor="gray-btn" />
+                        }
+                        {
+                            (this.props.support.claimState === "3012" || this.props.support.claimState === "3003") &&
+                            <Button text={ this.props.intl.message.button[ 12 ] } btnSize="bg-btn" btnColor="gray-btn" />
+                        }
+                    </div> :
+                    <div className="line-btn">
+                        <Button text={ this.props.intl.message.button[ 2 ] } btnSize="bg-btn" btnColor="disable" />
+                    </div>
+                }
                 <div className="line-message">
                     { this.props.intl.message.about[ 4 ] }
                 </div>

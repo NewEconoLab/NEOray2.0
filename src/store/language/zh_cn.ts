@@ -10,7 +10,7 @@ export default {
     8: "试运行",
     9: "调试",
     10: "下载",
-    11: "部署合约",
+    11: process.env.REACT_APP_SERVER_ENV === "PUB" ? "部署合约到主网" : "部署合约",
     12: "确认",
     13: "取消",
   },
@@ -106,6 +106,12 @@ export default {
     12: "前往Teemo官网",
     13: "提示",
     14: "用户信息获取失败，请先登陆Teemo钱包",
+  },
+  network: {
+    testnet: "测试网",
+    mainnet: "主网",
+    neo3test: "NEO3测试网",
+    prompt: "当前功能不支持在主网使用"
   },
   url: {
     invoke: "http://bbs.neldev.net/thread-146",

@@ -83,6 +83,14 @@ export default class Deploy extends React.Component<IProps, IState> {
             <>
                 <div className="header" >
                     { this.props.intl.message.deploy[ 1 ] }
+                    {
+                        process.env.REACT_APP_SERVER_ENV === "PUB" &&
+                        <div className="network main">{ this.props.intl.message.network.mainnet }</div>
+                    }
+                    {
+                        process.env.REACT_APP_SERVER_ENV === "DEV" &&
+                        <div className="network test">{ this.props.intl.message.network.testnet }</div>
+                    }
                 </div>
 
                 <div className="sidebar-body">

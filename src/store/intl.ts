@@ -16,6 +16,12 @@ class Intl implements IIntl {
         about: { [ key: number ]: string };
         output: { [ key: number ]: string };
         toast: { [ key: number ]: string };
+        network: {
+            mainnet: string,
+            testnet: string,
+            neo3test: string,
+            prompt: string
+        };
         url: {
             invoke: string;
             debug: string;

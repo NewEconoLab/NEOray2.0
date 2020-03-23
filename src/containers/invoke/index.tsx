@@ -58,63 +58,77 @@ export default class Invoke extends React.Component<IProps, IState> {
                     <a href={ this.props.intl.message.url.invoke } target="_bank">
                         <img src={ q1 } alt="" />
                     </a>
+                    {
+                        process.env.REACT_APP_SERVER_ENV === "PUB" &&
+                        <div className="network main">{ this.props.intl.message.network.mainnet }</div>
+                    }
+                    {
+                        process.env.REACT_APP_SERVER_ENV === "DEV" &&
+                        <div className="network test">{ this.props.intl.message.network.testnet }</div>
+                    }
                 </div>
-                { this.props.code.deploy ?
-                    <div className="invoke-box">
-                        <div className="invoke-title">{ this.props.intl.message.invoke[ 4 ] }：{ this.props.code.filename }</div>
-                        <div className="invoke-arg">
-                            <div className="arg-title">
-                                { this.props.intl.message.invoke[ 5 ] }
-                            </div>
-                            <div className="arg-value">
-                                <Input type="text" value={ this.state.sysfee } onChange={ this.onSysFeeChange } placeholder="" />
-                            </div>
-                        </div>
-                        <div className="invoke-arg">
-                            <div className="arg-title">
-                                { this.props.intl.message.invoke[ 6 ] }
-                            </div>
-                            <div className="arg-value">
-                                <Input type="text" value={ this.state.netfee } onChange={ this.onNetFeeChange } placeholder="" />
-                            </div>
-                        </div>
-                        <div className="invoke-arg">
-                            <div className="arg-title">
-                                { this.props.intl.message.invoke[ 7 ] }
-                            </div>
-                            <div className="arg-value">
-                                <Input type="text" value={ this.state.attached } onChange={ this.onAttached } placeholder="" />
-                            </div>
-                        </div>
-                        <div className="invoke-arg">
-                            <Select options={ [ { id: 'main', name: this.props.intl.message.invoke[ 8 ] } ] } text="" />
-                        </div>
-                        {/* 以下部分为invoke参数 */ }
-                        <ArgumentsTree intl={ this.props.intl } title="" onChange={ this.onChange } arguments={ this.state.args } />
-                        {/* 以上部分为invoke参数 */ }
-                        {/* 
-                        <div className="invoke-button">
-                            <Button text="增加参数" btnSize="bg-btn" />
-                        </div> 
-                        */}
-                        <div className="invoke-json">
-                            <textarea value={ this.state.jsonStr } onChange={ this.onJsonChange } />
-                        </div>
-                        <div className="invoke-button">
-                            <div>
-                                <Button text={ this.props.intl.message.button[ 7 ] } onClick={ this.invoke } />
-                            </div>
-                            <div className="button-right">
-                                <Button text={ this.props.intl.message.button[ 8 ] } onClick={ this.testRun } />
-                            </div>
-                        </div>
+                {
+                    process.env.REACT_APP_SERVER_ENV === "DEV" ?
+                        <>
+                            { this.props.code.deploy ?
+                                <div className="invoke-box">
+                                    <div className="invoke-title">{ this.props.intl.message.invoke[ 4 ] }：{ this.props.code.filename }</div>
+                                    <div className="invoke-arg">
+                                        <div className="arg-title">
+                                            { this.props.intl.message.invoke[ 5 ] }
+                                        </div>
+                                        <div className="arg-value">
+                                            <Input type="text" value={ this.state.sysfee } onChange={ this.onSysFeeChange } placeholder="" />
+                                        </div>
+                                    </div>
+                                    <div className="invoke-arg">
+                                        <div className="arg-title">
+                                            { this.props.intl.message.invoke[ 6 ] }
+                                        </div>
+                                        <div className="arg-value">
+                                            <Input type="text" value={ this.state.netfee } onChange={ this.onNetFeeChange } placeholder="" />
+                                        </div>
+                                    </div>
+                                    <div className="invoke-arg">
+                                        <div className="arg-title">
+                                            { this.props.intl.message.invoke[ 7 ] }
+                                        </div>
+                                        <div className="arg-value">
+                                            <Input type="text" value={ this.state.attached } onChange={ this.onAttached } placeholder="" />
+                                        </div>
+                                    </div>
+                                    <div className="invoke-arg">
+                                        <Select options={ [ { id: 'main', name: this.props.intl.message.invoke[ 8 ] } ] } text="" />
+                                    </div>
+                                    {/* 以下部分为invoke参数 */ }
+                                    <ArgumentsTree intl={ this.props.intl } title="" onChange={ this.onChange } arguments={ this.state.args } />
+                                    {/* 以上部分为invoke参数 */ }
+                                    {/* 
+                            <div className="invoke-button">
+                                <Button text="增加参数" btnSize="bg-btn" />
+                            </div> 
+                            */}
+                                    <div className="invoke-json">
+                                        <textarea value={ this.state.jsonStr } onChange={ this.onJsonChange } />
+                                    </div>
+                                    <div className="invoke-button">
+                                        <div>
+                                            <Button text={ this.props.intl.message.button[ 7 ] } onClick={ this.invoke } />
+                                        </div>
+                                        <div className="button-right">
+                                            <Button text={ this.props.intl.message.button[ 8 ] } onClick={ this.testRun } />
+                                        </div>
+                                    </div>
 
-                    </div> :
-
-                    <div className="invoke-box">
-                        <div className="invoke-title"> { this.props.intl.message.invoke[ 2 ] }</div>
-                        { this.props.intl.message.invoke[ 3 ] }
-                    </div>
+                                </div> :
+                                <div className="invoke-box">
+                                    <div className="invoke-title"> { this.props.intl.message.invoke[ 2 ] }</div>
+                                    { this.props.intl.message.invoke[ 3 ] }
+                                </div>
+                            }
+                        </> :
+                        <div className="invoke-box">{ this.props.intl.message.network.prompt }
+                        </div>
                 }
             </>
         )

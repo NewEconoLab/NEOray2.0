@@ -18,11 +18,27 @@ global.Intl = Intl;
 window[ 'Intl' ] = Intl;
 // common.setTimeGetBlock();
 
-window.addEventListener('Teemo.NEO.READY', () => {
+window.addEventListener('Teemo.NEO.READY', (data: CustomEvent) => {
     common.isLoadTeemo = true;
     common.getSessionAddress();
     common.isSetedAddress = true;
-    // common.initAccountBalance();
+    const name = data.detail.name;
+    const locations = window.location;
+    if (name.includes("NEO3")) {
+        window.location.replace(`${location.origin}/neo3/${locations.search}${locations.hash}`);
+        // window.location.replace(`https://neoray.nel.group/neo3/${locations.search}${locations.hash}`);
+    }
+    Teemo.NEO.getNetworks()
+        .then(result => {
+            const base = result.defaultNetwork === 'MainNet' ? '/mainnet' : '';
+            if (location.pathname.includes('mainnet') && base.includes('mainnet')) {
+                return;
+            }
+            if (!location.pathname.includes('mainnet') && !base.includes('mainnet')) {
+                return;
+            }
+            window.location.replace(`${location.origin}${base}${locations.search}${locations.hash}`);
+        })
 });
 
 setTimeout(() => {
@@ -35,7 +51,7 @@ setTimeout(() => {
 window.addEventListener('Teemo.NEO.NETWORK_CHANGED', (data: CustomEvent) => {
     console.log("inject NETWORK_CHANGED ");
     console.log(data.detail.networks[ 0 ]);
-    const base = data.detail.networks[ 0 ] === 'MainNet' ? '' : '/test';
+    const base = data.detail.networks[ 0 ] === 'MainNet' ? '/mainnet' : '';
     const locations = window.location;
     // console.log(`${location.origin}${base || ''}${locations.pathname}${locations.search}${locations.hash}`)
     window.location.replace(`${location.origin}${base || ''}${locations.pathname.replace('/test', '')}${locations.search}${locations.hash}`);
