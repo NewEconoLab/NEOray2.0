@@ -1,5 +1,5 @@
 declare const BLOCKCHAIN = "NEO";
-declare const VERSION = "v1";
+declare const VERSION = "V1.0.1";
 declare enum ArgumentDataType {
     STRING = "String",
     BOOLEAN = "Boolean",
@@ -25,6 +25,7 @@ declare enum Command {
     invoke = "invoke",
     invokeGroup = "invokeGroup",
     deployContract = "deployContract",
+    sendScript = "sendScript",
     event = "event",
     disconnect = "disconnect",
     getAddressFromScriptHash = "getAddressFromScriptHash",
@@ -54,7 +55,7 @@ declare enum EventName {
 interface GetStorageArgs {
     scriptHash: string;
     key: string;
-    network?: string;
+    network: string;
 }
 interface GetStorageOutput {
     result: string;
@@ -71,7 +72,7 @@ interface InvokeArgs {
     operation: string;
     fee?: string;
     sys_fee?: string;
-    network?: "TestNet" | "MainNet";
+    network: "TestNet" | "MainNet";
     arguments: Array<Argument>;
     attachedAssets?: AttachedAssets;
     description?: string;
@@ -82,13 +83,16 @@ interface InvokeReadInput {
     scriptHash: string;
     operation: string;
     arguments?: Argument[];
-    network?: string;
+    network: string;
 }
 interface InvokeReadGroup {
     group: InvokeReadInput[];
 }
 interface AttachedAssets {
     [ asset: string ]: string;
+}
+interface AttachedGas {
+    [ addr: string ]: string;
 }
 interface AssetIntentOverrides {
     inputs: AssetInput[];
@@ -127,15 +131,15 @@ interface InvokeGroupOutup {
  */
 interface GetBlockArgs {
     blockHeight: number | string;
-    network?: string;
+    network: string;
 }
 interface GetTransactionArgs {
     txid: string;
-    network?: string;
+    network: string;
 }
 interface GetApplicationLogArgs {
     txid: string;
-    network?: string;
+    network: string;
 }
 interface BalanceRequest {
     address: string;
@@ -144,7 +148,7 @@ interface BalanceRequest {
 }
 interface GetBalanceArgs {
     params: BalanceRequest | BalanceRequest[];
-    network?: string;
+    network: string;
 }
 interface BalanceResults {
     [ address: string ]: Balance[];
@@ -173,9 +177,12 @@ interface SendArgs {
     amount: string;
     remark?: string;
     fee?: string;
-    network?: string;
+    network: string;
 }
-
+interface SendOutput {
+    txid: string;
+    nodeUrl: string;
+}
 interface SendScriptArgs {
     scriptHash: string;
     scriptArguments: Argument[];
@@ -185,15 +192,6 @@ interface SendScriptArgs {
     sysfee?: string;
     description?: string;
     network?: "TestNet" | "MainNet";
-}
-
-interface AttachedGas {
-    [ addr: string ]: string;
-}
-
-interface SendOutput {
-    txid: string;
-    nodeUrl: string;
 }
 interface Provider {
     name: string;
@@ -209,38 +207,31 @@ interface InvokeReadInput {
     scriptHash: string;
     operation: string;
     args?: Argument[];
-    network?: string;
+    network: string;
 }
 interface GetBigIntegerFromAssetAmountArgs {
     amount: string;
     assetID: string;
-    network?: 'MainNet' | 'TestNet';
+    network: 'MainNet' | 'TestNet';
 }
 interface GetDecimalsFromAssetAmountArgs {
     amount: string;
     assetID: string;
-    network?: 'MainNet' | 'TestNet';
+    network: 'MainNet' | 'TestNet';
 }
 interface DomainArgs {
     domain: string;
-    network?: 'MainNet' | 'TestNet';
+    network: 'MainNet' | 'TestNet';
 }
 interface AddressArgs {
     address: string;
-    network?: 'MainNet' | 'TestNet';
+    network: 'MainNet' | 'TestNet';
 }
 interface DeployContractArgs {
-    contractHash: string;
-    description: string;
-    email: string;
-    author: string;
-    version: string;
-    name: string;
-    avmhex: string;
-    call: boolean;
-    storage: boolean;
-    payment: boolean;
+    mainfest: string;
+    nefhex: string;
     network?: 'MainNet' | 'TestNet';
+    fee?: string;
 }
 declare const ids: any[];
 /**
@@ -283,13 +274,11 @@ declare namespace Teemo {
          * @param {SendArgs} params 转账参数
          */
         static send(params: SendArgs): Promise<SendOutput>;
-
         /**
          * 转账并调用合约
-         * @param params 
+         * @param params
          */
         static sendScript(params: SendScriptArgs): Promise<SendOutput>;
-
         /**
          * invoke交易发送
          * @param {InvokeArgs} params invoke 参数

@@ -1,14 +1,3 @@
 export default {
-  ID_CGAS: "74f2dc36a68fdc4682034178eb2220729231db76",
-  ID_NNC: "fc732edee1efdf968c23c20a9628eaa5a6ccb934",
-  ID_NND: "ac74f4e649b1a527eaa41166e931f26520db033d",
-  ID_GAS: "602c79718b16e442de58778e148d0b1084e3b2dffd5de6b7b16cee7969282de7",
-  ID_NEO: "c56f33fc6ecfcd0c225c4ab356fee59390af8560be0e930faebe74a6daff7c9b",
-  DEX_HASH: "afc0a0954e343b705e9e4360c99f3ce2351581f4",
-  SWAP_HASH: "b9824294b773617a1835671866f03af7ef497a93",
-  assetDecimal:
-  {
-    "74f2dc36a68fdc4682034178eb2220729231db76": 8, // CGAS 小数位数8位
-    "fc732edee1efdf968c23c20a9628eaa5a6ccb934": 2, // NNC 
-  }
+  ID_GAS: "8c23f196d8a1bfd103a9dcb1f9ccf0c611377d3b",
 }

@@ -76,7 +76,7 @@ export default {
     1: "Support",
     2: "Address",
     3: "GAS balance",
-    4: "Each wallet can request 500 GAS once a day. Please leave a message on our forum if you need more GAS.",
+    4: "Each wallet can request 10 GAS once a day. Please leave a message on our forum if you need more GAS.",
     5: "Welcome to our community",
     6: "NEL Developer Forum",
     7: "Blockchain explorer",

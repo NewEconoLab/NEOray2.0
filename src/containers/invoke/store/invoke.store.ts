@@ -1,7 +1,10 @@
-import { IInvokeStore, IArgument } from "./interface/invoke.interface";
+import {
+    IInvokeStore,
+    // IArgument
+} from "./interface/invoke.interface";
 import OutputStore from '@/containers/output/store/index.store';
 import { action } from "mobx";
-import { ScriptBuild } from "@/utils/contract";
+// import { ScriptBuild } from "@/utils/contract";
 import codeStore from "@/containers/code/store/code.store";
 import { invokescript } from "./api/index.api";
 import { OutputType } from "@/containers/output/store/interface/index.interface";
@@ -11,21 +14,17 @@ import intl from "@/store/intl";
 import { HASH_CONFIG } from "@/config";
 
 class InvokeStore implements IInvokeStore {
-    @action public buildScript = (args: IArgument[]) => {
+    @action public buildScript = (args: Argument[]) => {
 
-        const sb = new ScriptBuild();
-        // 生成随机数
-        const random_uint8 = Neo.Cryptography.RandomNumberGenerator.getRandomValues<Uint8Array>(new Uint8Array(32));
-        const random_int = Neo.BigInteger.fromUint8Array(random_uint8);
-        // 塞入随机数
-        sb.EmitPushNumber(random_int);
-        sb.Emit(ThinNeo.OpCode.DROP);
+        const sb = new ThinNeo.ScriptBuilder();
         for (let i = args.length - 1; i >= 0; i--) {
-            sb.EmitArguments(args[ i ]);
+            const arg = args[ i ];
+            sb.EmitArgument(arg);
+
         }
-        const appcall = Neo.Uint160.parse(codeStore.codeid);
-        // let appcall = this.currentContract.scripthash.hexToBytes();
-        sb.EmitAppCall(appcall);
+        sb.EmitPushBytes(new Uint8Array(Neo.Uint160.parse(codeStore.codeid).bits.buffer));
+        sb.EmitSysCall("System.Contract.Call");
+        // sb.EmitAppCall(Neo.Uint160.parse(codeStore.codeid), "test1")
         return sb.ToArray();
     }
 
@@ -76,7 +75,7 @@ class InvokeStore implements IInvokeStore {
         }
     }
 
-    @action public invokeRead = async (args: IArgument[]) => {
+    @action public invokeRead = async (args: Argument[]) => {
         const script = this.buildScript(args);
         const name = codeStore.filename;
         const result = await invokescript(script.toHexString());
@@ -88,7 +87,7 @@ class InvokeStore implements IInvokeStore {
                     "Invoke Paramenters": JSON.stringify(args),
                     "Result Code": ""
                 },
-                "result": result[ 0 ]
+                "result": result
             }
         )
         return result

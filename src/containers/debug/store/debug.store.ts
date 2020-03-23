@@ -55,7 +55,7 @@ class DebugStore implements IDebugStore {
                 const codeoption = codeStore.option;
                 codeoption[ 'readOnly' ] = true;
                 codeStore.option = codeoption;
-                const dumpinfostr = dumpResult[ 0 ][ 'dimpInfo' ];
+                const dumpinfostr = dumpResult[ 0 ][ 'dumpinfo' ];
                 const lzma: nid.LZMA = new nid.LZMA();
                 nid.utils.MEMORY.reset();
                 const srcbytes = dumpinfostr.hexToBytes();
@@ -155,13 +155,19 @@ class DebugStore implements IDebugStore {
         this.stackarr.push(undefined);
         // tslint:disable-next-line:prefer-for-of
         for (let i = 0; i < script.ops.length; i++) {
-            const str = script.ops[ i ].GetHeader();
+            let str = script.ops[ i ].GetHeader();
+            const op = script.ops[ i ];
+            if (op.op === ThinNeo.OpCode.SYSCALL && op.param) {
+                const api: number = Neo.BigInteger.fromUint8Array(op.param).toUint64().toUint32();
+                const p = ThinNeo.Debug.methodHelper.Ins.getMethodName(api);
+                str += ` ${p}`;
+            }
             // console.log(str);
             // this.stackarr.push(undefined);
             this.addAvmStr(space + "op : " + str);
             this.stackarr.push({ script: script, op: script.ops[ i ] });
             // console.log(space + "op : " + str, { script: script, op: script.ops[ i ] });
-            if (script.ops[ i ].GetHeader().includes("APPCALL")) {
+            if (op.GetHeader().includes("SYSCALL")) {
                 const arr = [];
                 // 预先获得所有需要加载的 avm等信息
                 if (script.ops[ i ].subScript) {
@@ -199,7 +205,7 @@ class DebugStore implements IDebugStore {
                 try {
                     py = await readOssFile(hash, 'py', false);
                 } catch (error) {
-                    py = ""
+                    py = "";
                 }
             }
             try {
@@ -310,7 +316,7 @@ class DebugStore implements IDebugStore {
     public calcStackShow(item, tree: TreeView) {
         if (item) {
             for (const obj of item) {
-
+                if (!obj) { return; }
                 if (obj[ "type" ] === "Array") {
                     const view = new TreeView("Array");
                     tree.addChildren(view);

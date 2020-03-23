@@ -4,7 +4,7 @@ import './index.less';
 import { ICommonStore } from '@/store/interface/common.interface';
 import { inject, observer } from 'mobx-react';
 import q1 from '@/img/help.png';
-import Input from '@/components/Input';
+// import Input from '@/components/Input';
 import Select from '@/components/select';
 import Button from '@/components/Button';
 import { ArgumentsTree } from './ArgumentsTree';
@@ -58,11 +58,12 @@ export default class Invoke extends React.Component<IProps, IState> {
                     <a href={ this.props.intl.message.url.invoke } target="_bank">
                         <img src={ q1 } alt="" />
                     </a>
+                    <div className="network neo3">NEO3测试网</div>
                 </div>
                 { this.props.code.deploy ?
                     <div className="invoke-box">
                         <div className="invoke-title">{ this.props.intl.message.invoke[ 4 ] }：{ this.props.code.filename }</div>
-                        <div className="invoke-arg">
+                        {/* <div className="invoke-arg">
                             <div className="arg-title">
                                 { this.props.intl.message.invoke[ 5 ] }
                             </div>
@@ -77,15 +78,15 @@ export default class Invoke extends React.Component<IProps, IState> {
                             <div className="arg-value">
                                 <Input type="text" value={ this.state.netfee } onChange={ this.onNetFeeChange } placeholder="" />
                             </div>
-                        </div>
-                        <div className="invoke-arg">
+                        </div> */}
+                        {/* <div className="invoke-arg">
                             <div className="arg-title">
                                 { this.props.intl.message.invoke[ 7 ] }
                             </div>
                             <div className="arg-value">
                                 <Input type="text" value={ this.state.attached } onChange={ this.onAttached } placeholder="" />
                             </div>
-                        </div>
+                        </div> */}
                         <div className="invoke-arg">
                             <Select options={ [ { id: 'main', name: this.props.intl.message.invoke[ 8 ] } ] } text="" />
                         </div>
@@ -104,7 +105,7 @@ export default class Invoke extends React.Component<IProps, IState> {
                             <div>
                                 <Button text={ this.props.intl.message.button[ 7 ] } onClick={ this.invoke } />
                             </div>
-                            <div className="button-right">
+                            <div >
                                 <Button text={ this.props.intl.message.button[ 8 ] } onClick={ this.testRun } />
                             </div>
                         </div>
@@ -120,17 +121,17 @@ export default class Invoke extends React.Component<IProps, IState> {
         )
     }
 
-    private onSysFeeChange = (event: string) => {
-        this.setState({ sysfee: event })
-    }
+    // private onSysFeeChange = (event: string) => {
+    //     this.setState({ sysfee: event })
+    // }
 
-    private onNetFeeChange = (event: string) => {
-        this.setState({ netfee: event })
-    }
+    // private onNetFeeChange = (event: string) => {
+    //     this.setState({ netfee: event })
+    // }
 
-    private onAttached = (event: string) => {
-        this.setState({ attached: event })
-    }
+    // private onAttached = (event: string) => {
+    //     this.setState({ attached: event })
+    // }
 
     private onChange = (event: IArgument[]) => {
         const jsonstr = event.length > 0 ? JSON.stringify(event, null, 3) : "";

@@ -1,12 +1,13 @@
 export interface IDeployStore {
     getDeployInfo: (hash: string) => Promise<IContractDeployInfo>
-    deploy: (params: DeployContractArgs) => Promise<InvokeOutput>
+    deploy: (params: DeployContractArgs, payable: boolean, storage: boolean) => Promise<InvokeOutput>
     compile: () => Promise<{
         scripthash: string,     // 合约hash
-        avmhex: string,         // avm hex字符串
-        download: string,
+        nefhex: string,         // avm hex字符串
+        // download: string,
         deploy: boolean,
-        name: string
+        name: string,
+        manifest: any,
     }>;
 }
 
@@ -27,6 +28,8 @@ export interface IContractDeployInfo {
     email: string;
     desc: string;
     avmhex: string;
+    nef: string;
+    manifest: string;
     acceptablePayment: any;
     createStorage: any;
     dynamicCall: any;

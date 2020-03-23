@@ -28,19 +28,18 @@ interface IProps {
 
 interface IState {
     scripthash: string    // 合约hash
-    description: string;    // 备注信息
-    email: string;          // 邮件
-    author: string;         // 作者
     version: string,        // 版本
     name: string;           // 名称
-    avmhex: string;         // avm hex字符串
+    nefhex: string;         // avm hex字符串
     call: boolean;          // 是否动态调用
     storage: boolean;       // 是否存储区
     payment: boolean;       // 是否支持付费
     balance: number;        // 余额
     needfee: number;
-    download: string;
+    manifestJsonStr: string;
+    downloads: Array<{ download: string, href: string }>;
     deploy: boolean;
+    manifest: any;
 }
 
 @inject('common', 'code', 'deploy', 'intl', 'debug')
@@ -49,18 +48,17 @@ export default class Deploy extends React.Component<IProps, IState> {
 
     public state: IState = {
         scripthash: "",     // 合约hash
-        description: "",     // 备注信息
-        email: "",           // 邮件
-        author: "",          // 作者
         version: "",        // 版本
         name: "",           // 名称
-        avmhex: "",         // avm hex字符串
+        nefhex: "",        // avm hex字符串
+        manifest: "",
+        manifestJsonStr: "",
         call: false,           // 是否动态调用
         storage: false,        // 是否存储区
         payment: false,        // 是否支持付费
         balance: 0,
         needfee: 0,
-        download: "",
+        downloads: [],
         deploy: false
     }
 
@@ -83,6 +81,7 @@ export default class Deploy extends React.Component<IProps, IState> {
             <>
                 <div className="header" >
                     { this.props.intl.message.deploy[ 1 ] }
+                    <div className="network neo3">NEO3测试网</div>
                 </div>
 
                 <div className="sidebar-body">
@@ -96,12 +95,10 @@ export default class Deploy extends React.Component<IProps, IState> {
                         <>
                             <div className="result-box">
                                 <div className="result-header">
-                                    <div className="header-title">avm(hex)</div>
-                                    <a download={ this.state.scripthash + ".avm" } href={ this.state.download }>
-                                        <Button text={ this.props.intl.message.button[ 10 ] } btnSize="sm-btn" />
-                                    </a>
+                                    <div className="header-title">manifest</div>
+                                    <Button text={ this.props.intl.message.button[ 10 ] } btnSize="sm-btn" onClick={ this.handleOnDownload } />
                                 </div>
-                                <div className="avmbox" >{ this.state.avmhex }</div>
+                                <textarea value={ this.state.manifest ? JSON.stringify(this.state.manifest, null, 3) : "" } className="avmbox" />
                                 <div className="result-header">hash</div>
                                 <div className="copy-input">
                                     <input className="copy-value" disabled={ true } value={ this.state.scripthash } onChange={ this.handleHashOnChange } />
@@ -112,12 +109,12 @@ export default class Deploy extends React.Component<IProps, IState> {
                                 <div className="deploy-header">{ this.props.intl.message.deploy[ 4 ] }</div>
                                 <Input type="text" value={ this.state.name } onChange={ this.handleNameOnChange } />
                                 <div className="deploy-consloe">
-                                    <Checkbox text={ this.props.intl.message.deploy[ 5 ] } onClick={ this.handleCallOnClick } value={ this.state.call } />
+                                    {/* <Checkbox text={ this.props.intl.message.deploy[ 5 ] } onClick={ this.handleCallOnClick } value={ this.state.call } /> */ }
                                     <Checkbox text={ this.props.intl.message.deploy[ 6 ] } onClick={ this.handleStorageOnClick } value={ this.state.storage } />
                                     <Checkbox text={ this.props.intl.message.deploy[ 7 ] } onClick={ this.handlePaymentOnClick } value={ this.state.payment } />
                                     <Button text={ this.props.intl.message.button[ 11 ] } btnSize="bg-btn" onClick={ this.onDeploy } />
-                                    <div className="description">{ this.props.intl.message.deploy[ 8 ] }{ (this.state.call ? 500 : 0) + (this.state.storage ? 400 : 0) + 90 + 11 }GAS</div>
-                                    <div className="description">{ this.props.intl.message.deploy[ 9 ] }{ this.props.common.gasBalance }GAS</div>
+                                    {/* <div className="description">{ this.props.intl.message.deploy[ 8 ] }{ (this.state.call ? 500 : 0) + (this.state.storage ? 400 : 0) + 90 + 11 }GAS</div> */ }
+                                    {/* <div className="description">{ this.props.intl.message.deploy[ 9 ] }{ this.props.common.gasBalance }GAS</div> */ }
                                 </div>
                             </div>
                         </>
@@ -127,16 +124,24 @@ export default class Deploy extends React.Component<IProps, IState> {
         )
     }
 
-    private handleCallOnClick = (value: boolean) => {
-        this.setState({ call: value })
-    }
+    // private handleCallOnClick = (value: boolean) => {
+    //     this.setState({ call: value })
+    // }
+
+    // private onJsonChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    //     this.setState({ manifest: event.target.value })
+    // }
 
     private handleStorageOnClick = (value: boolean) => {
-        this.setState({ storage: value })
+        const manifest = this.state.manifest;
+        manifest[ 'features' ][ 'storage' ] = value;
+        this.setState({ storage: value, manifest })
     }
 
     private handlePaymentOnClick = (value: boolean) => {
-        this.setState({ payment: value })
+        const manifest = this.state.manifest;
+        manifest[ 'features' ][ 'payable' ] = value;
+        this.setState({ payment: value, manifest })
     }
 
     private handleNameOnChange = (event) => {
@@ -145,6 +150,26 @@ export default class Deploy extends React.Component<IProps, IState> {
 
     private handleHashOnChange = (event) => {
         this.setState({ name: event })
+    }
+
+    private handleOnDownload = () => {
+        const blob_nef = new Blob([ this.state.nefhex.hexToBytes() ]);
+        const blob_manifest = new Blob([ ThinNeo.Helper.String2Bytes(this.state.manifest) ])
+        const files = {
+            ".nef": window.URL.createObjectURL(blob_nef),
+            ".manifest.json": window.URL.createObjectURL(blob_manifest)
+        } // 所有文件
+        for (const name in files) {
+            if (files.hasOwnProperty(name)) {
+                const href = files[ name ];
+                const a = document.createElement('a') // 创建a标签
+                const e = document.createEvent('MouseEvents') // 创建鼠标事件对象
+                e.initEvent('click', false, false) // 初始化事件对象
+                a.href = href // 设置下载地址
+                a.download = this.state.scripthash + name // 设置下载文件名
+                a.dispatchEvent(e)
+            }
+        }
     }
 
     // 复制地址
@@ -175,20 +200,23 @@ export default class Deploy extends React.Component<IProps, IState> {
         if (this.props.code.deploy) {
             this.setState({ deploy: true })
             const result = await this.props.deploy.getDeployInfo(this.props.code.codeid)
-            const blob = new Blob([ result.avmhex.hexToBytes() ]);
+            const blob = new Blob([ result.nef.hexToBytes() ]);
             const href = URL.createObjectURL(blob);
+            const downloads = new Array<{ download: string, href: string }>();
+            // const blob_2 = new Blob([ ThinNeo.Helper.String2Bytes(result.manifest) ]);
+            const href_2 = URL.createObjectURL(blob);
+            downloads.push({ download: this.state.scripthash + ".nef", href });
+
+            downloads.push({ download: this.state.scripthash + ".manifest.json", href: href_2 });
             this.setState({
-                download: href,
+                downloads,
                 scripthash: result.scripthash,      // 合约hash
-                description: result.desc,           // 备注信息
-                email: result.email,                // 邮件
-                author: result.author,              // 作者
                 version: result.version,            // 版本
                 name: result.name,                  // 名称
-                avmhex: result.avmhex,              // avm hex字符串
-                call: result.dynamicCall === '0' ? false : true,           // 是否动态调用
-                storage: result.createStorage === '0' ? false : true,        // 是否存储区
-                payment: result.acceptablePayment === '0' ? false : true,        // 是否支持付费
+                nefhex: result.nef,              // avm hex字符串
+                manifest: result.manifest,
+                storage: result.createStorage,        // 是否存储区
+                payment: result.acceptablePayment,        // 是否支持付费
             },
             )
         }
@@ -197,7 +225,8 @@ export default class Deploy extends React.Component<IProps, IState> {
     private onCompile = async () => {
         try {
             const result = await this.props.deploy.compile();
-            this.setState(result)
+            this.setState(result);
+            this.setState({ storage: result.manifest[ 'features' ][ 'storage' ], payment: result.manifest[ 'features' ][ 'payable' ] })
         } catch (error) {
             notification.error({ message: this.props.intl.message.output[ 6 ], duration: 3 });
         }
@@ -205,19 +234,22 @@ export default class Deploy extends React.Component<IProps, IState> {
 
     private onDeploy = async () => {
         try {
+            // const nef = Neo.SmartContract.NefFile.loadNef(this.state.nefhex);
             const param: DeployContractArgs = {
-                contractHash: this.state.scripthash,
-                description: this.state.description,
-                email: this.state.email,
-                author: this.state.author,
-                version: this.state.version,
-                name: this.state.name,
-                avmhex: this.state.avmhex,
-                call: this.state.call,
-                storage: this.state.storage,
-                payment: this.state.payment
+                "nefhex": this.state.nefhex,
+                "mainfest": JSON.stringify(this.state.manifest),
+                // contractHash: this.state.scripthash,
+                // description: this.state.description,
+                // email: this.state.email,
+                // author: this.state.author,
+                // version: this.state.version,
+                // name: this.state.name,
+                // nefhex: this.state.nefhex,
+                // call: this.state.call,
+                // storage: this.state.storage,
+                // payment: this.state.payment
             }
-            const result = await this.props.deploy.deploy(param)
+            const result = await this.props.deploy.deploy(param, this.state.payment, this.state.storage)
             if (result) {
                 notification.success({ message: this.props.intl.message.toast[ 6 ], duration: 3 })
             }

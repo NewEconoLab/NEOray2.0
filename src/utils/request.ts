@@ -10,16 +10,16 @@ interface IOpts {
 
 // const network: string = process.env.REACT_APP_SERVER_ENV === 'DEV' ? 'testnet' : 'mainnet';
 const network = 'testnet'
-const baseCommonUrl: string = "https://api.nel.group/api/" + network;
-const baseUrl: string = "https://apidebug.nel.group/api/" + network;
+const baseCommonUrl: string = "http://localhost:10335";
+const baseUrl: string = "https://apidebugneo3dev.nel.group/api/" + network;
 
 const makeRpcPostBody = (method: string, params: any): {} => {
 
   const body = {};
-  body["jsonrpc"] = "2.0";
-  body["id"] = 1;
-  body["method"] = method;
-  body["params"] = params;
+  body[ "jsonrpc" ] = "2.0";
+  body[ "id" ] = 1;
+  body[ "method" ] = method;
+  body[ "params" ] = params;
   return body;
 }
 const defaultConfig = {
@@ -36,14 +36,13 @@ export default function request(opts: IOpts): Promise<any> {
   const args = {
     url,
     method: opts.isGET ? 'GET' : 'POST',
-    [opts.isGET ? 'params' : 'data']: opts.method ? params : JSON.stringify(params),
+    [ opts.isGET ? 'params' : 'data' ]: opts.method ? params : JSON.stringify(params),
     ...defaultConfig,
   }
   return new Promise((resolve, reject) => {
     Axios(args)
       .then((data: any) => {
-        if(Array.isArray(data.data))
-        {
+        if (Array.isArray(data.data)) {
           resolve(data.data)
         }
         else if (data.data.result) {
@@ -54,7 +53,7 @@ export default function request(opts: IOpts): Promise<any> {
           resolve(data.data.result);
           return;
         }
-        else if (data.data.error["code"] === -1) {
+        else if (data.data.error[ "code" ] === -1) {
           reject(data.data.error);
         }
         reject(data.data.error);

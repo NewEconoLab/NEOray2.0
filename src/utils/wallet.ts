@@ -117,7 +117,7 @@ export function getApplicationLog(params: string) {
     return;
   }
   const data: GetApplicationLogArgs = {
-    // network:"TestNet",
+    network: "TestNet",
     txid: params
   }
   return new Promise((resolve, reject) => {

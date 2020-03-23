@@ -41,10 +41,10 @@ export const readOssFile = async (name: string, filename: string, temp: boolean)
     }
 }
 
-export const compileContractFile = (address: string, code: string) => {
+export const compileContractFile = (address: string, code: string, version: string) => {
     const opts = {
-        method: 'compileContractFile',
-        params: [ address, code ]
+        method: 'compileCsContractFile',
+        params: [ address, code, version ]
     }
     return request(opts);
 }
@@ -60,10 +60,21 @@ export const compilePythonContractFile = (address: string, code: string) => {
 /**
  * 存储部署信息
  */
-export const storageContractFile = (address: string, hash: string, name: string, version: string, author: string, email: string, descript: string, feepay: 1 | 0, isstore: 1 | 0, iscall: 1 | 0, txid: string, lange?: string) => {
+export const storageContractFile = (address: string, hash: string, name: string, version: string, payable: string, storage: string, lange: string, txid: string) => {
     const opts = {
         method: "storageContractFile",
-        params: [ address, hash, name, version, author, email, descript, feepay, isstore, iscall, txid, lange ]
+        params: [ address, hash, name, version, payable, storage, lange, txid ]
+    }
+    return request(opts);
+}
+
+/**
+ * 获得 NEO3的编译器版本
+ */
+export const getCompilerVersions = () => {
+    const opts = {
+        method: 'getCompilerVersions',
+        params: []
     }
     return request(opts);
 }

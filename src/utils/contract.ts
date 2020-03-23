@@ -12,7 +12,7 @@ export class ScriptBuild extends ThinNeo.ScriptBuilder {
      * 
      * @param argument 
      */
-    public EmitArguments(param: IArgument): ThinNeo.ScriptBuilder {
+    public EmitArgument(param: IArgument): ThinNeo.ScriptBuilder {
         let hex: Uint8Array;
         switch (param.type) {
             case ArgumentDataType.STRING:
@@ -47,7 +47,7 @@ export class ScriptBuild extends ThinNeo.ScriptBuilder {
             case ArgumentDataType.ARRAY:
                 const argument = param.value as Argument[];
                 for (let i = argument.length - 1; i >= 0; i--) {
-                    this.EmitArguments(argument[ i ]);
+                    this.EmitArgument(argument[ i ]);
                 }
                 this.EmitPushNumber(new Neo.BigInteger(argument.length));
                 this.Emit(ThinNeo.OpCode.PACK);

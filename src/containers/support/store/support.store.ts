@@ -11,7 +11,7 @@ class SupportStore implements ISupportStore {
         }
     }
     @action public claimGas = async () => {
-        const result = await claimgas(common.address, 500);
+        const result = await claimgas(common.address, 10);
         if (result ? result[ 0 ] : false) {
             this.claimState = result[ 0 ][ "code" ];
         }

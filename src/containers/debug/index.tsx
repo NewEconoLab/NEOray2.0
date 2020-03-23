@@ -39,6 +39,7 @@ export default class Debug extends React.Component<IDebugProps> {
                     <a href={ this.props.intl.message.url.debug } target="_bank">
                         <img src={ q1 } alt="" />
                     </a>
+                    <div className="network neo3">NEO3测试网</div>
                 </div>
                 <div className="debuginfo-box">
                     <div className="button-box">
