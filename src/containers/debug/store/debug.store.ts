@@ -255,7 +255,7 @@ class DebugStore implements IDebugStore {
 
     public async initNotify() {
         const result = await getNotify(this.currentTxid);
-        this.notify = JSON.stringify(result[ 0 ], null, 2);
+        this.notify = JSON.stringify(result, null, 2);
     }
 
 

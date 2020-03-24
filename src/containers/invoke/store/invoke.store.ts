@@ -62,7 +62,7 @@ class InvokeStore implements IInvokeStore {
                                 "type": OutputType.tree,
                                 "title": `${intl.message.output[ 3 ]}：${intl.message.output[ 4 ]}：${name} TXID：${result.txid}`,
                                 "value": {},
-                                "result": res[ 0 ],
+                                "result": res,
                                 "txid": result.txid
                             }
                         )

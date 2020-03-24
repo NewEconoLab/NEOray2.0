@@ -58,7 +58,7 @@ export function getDumpInfoByTxid(txid: string) {
  */
 export function getNotify(txid: string) {
     return request({
-        method: 'getnotify',
+        method: 'getapplicationlog',
         params: [ txid ],
         baseUrl: "common"
     })
