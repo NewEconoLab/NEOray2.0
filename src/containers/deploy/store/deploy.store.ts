@@ -63,7 +63,9 @@ class DeployStore implements IDeployStore {
     @action public deploy = async (params: DeployContractArgs) => {
         const result = await Teemo.NEO.deployContract(params)
         if (result) {
-            storageContractFile(common.address, params.contractHash, params.name, params.version, params.author, params.email, params.description, params.payment ? 1 : 0, params.storage ? 1 : 0, params.call ? 1 : 0, result.txid, codeStore.language === "python" ? "py" : "cs")
+            if (process.env.REACT_APP_SERVER_ENV === "DEV") {
+                storageContractFile(common.address, params.contractHash, params.name, params.version, params.author, params.email, params.description, params.payment ? 1 : 0, params.storage ? 1 : 0, params.call ? 1 : 0, result.txid, codeStore.language === "python" ? "py" : "cs")
+            }
             OutputStore.addOutputMessage({
                 'title': `${intl.message.output[ 2 ]}：${intl.message.output[ 7 ]}：${params.name} TXID:${result.txid}`,
                 'type': OutputType.tree,
