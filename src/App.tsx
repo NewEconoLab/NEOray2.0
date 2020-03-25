@@ -37,7 +37,7 @@ export default () => {
   if (process.env.REACT_APP_SERVER_ENV === 'DEV') {
     return (
       <Provider { ...store }>
-        <BrowserRouter basename="">
+        <BrowserRouter basename="neo3">
           <Layout>
             <Switch>
               <ObserverRender />
@@ -49,7 +49,7 @@ export default () => {
   }
   return (
     <Provider { ...store }>
-      <BrowserRouter basename="">
+      <BrowserRouter basename="neo3">
         <Layout>
           <Switch>
             <ObserverRender />
