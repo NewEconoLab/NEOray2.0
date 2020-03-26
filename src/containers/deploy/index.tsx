@@ -154,7 +154,7 @@ export default class Deploy extends React.Component<IProps, IState> {
 
     private handleOnDownload = () => {
         const blob_nef = new Blob([ this.state.nefhex.hexToBytes() ]);
-        const blob_manifest = new Blob([ ThinNeo.Helper.String2Bytes(this.state.manifest) ])
+        const blob_manifest = new Blob([ ThinNeo.Helper.String2Bytes(JSON.stringify(this.state.manifest)) ])
         const files = {
             ".nef": window.URL.createObjectURL(blob_nef),
             ".manifest.json": window.URL.createObjectURL(blob_manifest)
