@@ -30,7 +30,7 @@ class DebugStore implements IDebugStore {
         if (common.address && codeStore.deploy) {
             try {
                 const result = await getTxidByAddressAndContract(common.address, codeStore.codeid, 1, 20);
-                this.txlist = result;
+                this.txlist = result.map(value => ({ txid: value[ 'txid' ], time: value[ 'blockTimestamp' ] }));
             } catch (error) {
                 this.txlist = [];
             }

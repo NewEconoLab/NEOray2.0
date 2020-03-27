@@ -121,7 +121,7 @@ class FileStore implements IFileStore {
         } catch (error) {
             this.deployList = [];
         }
-        const loadlist = localStorage.getItem('NEORAY_FILES_HASHLOAD');
+        const loadlist = localStorage.getItem('NEORAY_FILES_HASHLOAD_NEO3');
         let loads: IContract[] = [];
         if (loadlist) {
             loads = JSON.parse(loadlist)
@@ -167,7 +167,7 @@ class FileStore implements IFileStore {
             codeStore.initCode(hash, contractinfo.name, language, result, true);
             this.currentFile = { id: hash, deploy: true };
         }
-        const files = localStorage.getItem('NEORAY_FILES_HASHLOAD');
+        const files = localStorage.getItem('NEORAY_FILES_HASHLOAD_NEO3');
         let arr: IContract[] = [];
         if (files) {
             arr = JSON.parse(files)
@@ -179,7 +179,7 @@ class FileStore implements IFileStore {
         this.loadList = arr;
         // this.loadList=arr;
         // sessionStorage.setItem(hash, result);
-        localStorage.setItem('NEORAY_FILES_HASHLOAD', JSON.stringify(arr));
+        localStorage.setItem('NEORAY_FILES_HASHLOAD_NEO3', JSON.stringify(arr));
         return true;
     }
 
@@ -207,7 +207,7 @@ class FileStore implements IFileStore {
     }
 
     @action public deleteLoadCode = (hash: string) => {
-        const files = localStorage.getItem('NEORAY_FILES_HASHLOAD');
+        const files = localStorage.getItem('NEORAY_FILES_HASHLOAD_NEO3');
         let arr: any[] = [];
         if (files) {
             arr = JSON.parse(files);
@@ -216,7 +216,7 @@ class FileStore implements IFileStore {
             return item.scripthash !== hash;
         })
         this.loadList = arr;
-        localStorage.setItem('NEORAY_FILES_HASHLOAD', JSON.stringify(arr))
+        localStorage.setItem('NEORAY_FILES_HASHLOAD_NEO3', JSON.stringify(arr))
         if (hash === codeStore.codeid) {
             codeStore.initCode("", "", "py", "", false);
             this.currentFile = { id: hash, deploy: false };
