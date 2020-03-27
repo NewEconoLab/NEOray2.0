@@ -10,7 +10,7 @@ interface IOpts {
 
 // const network: string = process.env.REACT_APP_SERVER_ENV === 'DEV' ? 'testnet' : 'mainnet';
 const network = 'testnet'
-const baseCommonUrl: string = "http://47.99.35.147:10337";
+const baseCommonUrl: string = "https://apineo3dev.nel.group/api/testnet";
 const baseUrl: string = "https://apidebugneo3dev.nel.group/api/" + network;
 
 const makeRpcPostBody = (method: string, params: any): {} => {

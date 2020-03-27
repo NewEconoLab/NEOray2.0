@@ -74,7 +74,7 @@ export default class Support extends React.Component<IProps> {
                 </div>
                 <div className="about">
                     <div className="about-title">{ this.props.intl.message.about[ 5 ] }</div>
-                    <div className="about-href" ><img src={ require("@/img/luntan.png") } alt="" /><a target="_bank" href="https://bbs.neldev.net/">{ this.props.intl.message.about[ 6 ] }</a></div>
+                    <div className="about-href" ><img src={ require("@/img/luntan.png") } alt="" /><a target="_bank" href="http://bbs.neldev.net/">{ this.props.intl.message.about[ 6 ] }</a></div>
                     <div className="about-href" ><img src={ require("@/img/github.png") } alt="" /><a target="_bank" href="https://github.com/NewEconoLab/NEOray2.0">GitHub</a></div>
                     <div className="about-href" ><img src={ require("@/img/liulanqi.png") } alt="" /><a target="_bank" href="https://scan.nel.group/">{ this.props.intl.message.about[ 7 ] }</a></div>
                 </div>

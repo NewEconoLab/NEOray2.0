@@ -63,7 +63,7 @@ export default class Deploy extends React.Component<IProps, IState> {
     }
 
     private selected = React.createRef<Select>();
-    private options = [ { id: "cs", name: this.props.intl.message.deploy[ 2 ] }, { id: "py", name: this.props.intl.message.deploy[ 3 ] } ]
+    private options = [ { id: "cs", name: this.props.intl.message.deploy[ 2 ] } /*, { id: "py", name: this.props.intl.message.deploy[ 3 ] }  */ ]
     // private checkCall = React.createRef<Checkbox>();
     // private checkStore = React.createRef<Checkbox>();
     // private checkPay = React.createRef<Checkbox>();

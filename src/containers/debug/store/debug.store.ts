@@ -255,7 +255,8 @@ class DebugStore implements IDebugStore {
 
     public async initNotify() {
         const result = await getNotify(this.currentTxid);
-        this.notify = JSON.stringify(result, null, 2);
+        // const result = await Teemo.NEO.getApplicationLog({ "txid": this.currentTxid, "network": "TestNet" });
+        this.notify = JSON.stringify(result ? result[ 0 ] : {}, null, 2);
     }
 
 

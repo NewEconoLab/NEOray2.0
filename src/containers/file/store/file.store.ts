@@ -22,7 +22,7 @@ class FileStore implements IFileStore {
     @action public addToCodeList = (filename: string) => {
         const time = new Date().getTime();
         const id = ThinNeo.Helper.String2Bytes(time + filename).toHexString();
-        const files = localStorage.getItem('NEORAY_NOT_DEPLOYED_FILES');
+        const files = localStorage.getItem('NEORAY_NOT_DEPLOYED_FILES_NEO3');
         let arr: any[] = [];
         const index = filename.lastIndexOf("\.");
         let language = filename.substring(index + 1, filename.length);
@@ -39,7 +39,7 @@ class FileStore implements IFileStore {
         this.filelist = arr;
         console.log('filelist', arr);
 
-        localStorage.setItem("NEORAY_NOT_DEPLOYED_FILES", JSON.stringify(arr));
+        localStorage.setItem("NEORAY_NOT_DEPLOYED_FILES_NEO3", JSON.stringify(arr));
         codeStore.initCode(id, name, language, "", false);
         this.currentFile = { id, deploy: false };
         return id;
@@ -61,7 +61,7 @@ class FileStore implements IFileStore {
             name = filename;
             language = 'cs';
         }
-        const files = localStorage.getItem('NEORAY_NOT_DEPLOYED_FILES');
+        const files = localStorage.getItem('NEORAY_NOT_DEPLOYED_FILES_NEO3');
         let arr: any[] = [];
         if (files) {
             arr = JSON.parse(files);
@@ -69,7 +69,7 @@ class FileStore implements IFileStore {
                 return item.id === id ? { id, name: name ? name : "untitled", language } : item;
             })
         }
-        localStorage.setItem("NEORAY_NOT_DEPLOYED_FILES", JSON.stringify(arr));
+        localStorage.setItem("NEORAY_NOT_DEPLOYED_FILES_NEO3", JSON.stringify(arr));
         this.filelist = arr;
         if (codeStore.codeid === id) {
             codeStore.initCode(id, name, language, codeStore.code, false);
@@ -81,7 +81,7 @@ class FileStore implements IFileStore {
      * 删除代码
      */
     @action public deleteToCodeList = (id: string) => {
-        const files = localStorage.getItem('NEORAY_NOT_DEPLOYED_FILES');
+        const files = localStorage.getItem('NEORAY_NOT_DEPLOYED_FILES_NEO3');
         let arr: any[] = [];
         if (files) {
             arr = JSON.parse(files);
@@ -90,7 +90,7 @@ class FileStore implements IFileStore {
             return item.id !== id;
         })
         this.filelist = arr;
-        localStorage.setItem('NEORAY_NOT_DEPLOYED_FILES', JSON.stringify(arr))
+        localStorage.setItem('NEORAY_NOT_DEPLOYED_FILES_NEO3', JSON.stringify(arr))
         localStorage.removeItem(id);
         if (id === codeStore.codeid) {
             codeStore.initCode("", "", "py", "", false);
@@ -103,7 +103,7 @@ class FileStore implements IFileStore {
      * 初始化文件
      */
     @action public initFileList = async () => {
-        const files = localStorage.getItem('NEORAY_NOT_DEPLOYED_FILES');
+        const files = localStorage.getItem('NEORAY_NOT_DEPLOYED_FILES_NEO3');
         let arr: any[] = [];
         if (files) {
             arr = JSON.parse(files);
@@ -142,7 +142,7 @@ class FileStore implements IFileStore {
 
     @action public openFileCode = (fileid: string) => {
         const code = localStorage.getItem(fileid);
-        const loadlist = localStorage.getItem('NEORAY_NOT_DEPLOYED_FILES');
+        const loadlist = localStorage.getItem('NEORAY_NOT_DEPLOYED_FILES_NEO3');
         let loads: any[] = [];
         let file: IContract = { "language": 'cs', "scripthash": fileid, "name": fileid };
         if (loadlist) {
@@ -186,7 +186,7 @@ class FileStore implements IFileStore {
     @action public initFileCode = (filename: string, code: string) => {
         const time = new Date().getTime();
         const id = ThinNeo.Helper.String2Bytes(time + filename).toHexString();
-        const files = localStorage.getItem('NEORAY_NOT_DEPLOYED_FILES');
+        const files = localStorage.getItem('NEORAY_NOT_DEPLOYED_FILES_NEO3');
         let arr: any[] = [];
         const index = filename.lastIndexOf("\.");
 
@@ -200,7 +200,7 @@ class FileStore implements IFileStore {
         arr.push({ id, name, language })
         this.filelist = arr;
 
-        localStorage.setItem("NEORAY_NOT_DEPLOYED_FILES", JSON.stringify(arr));
+        localStorage.setItem("NEORAY_NOT_DEPLOYED_FILES_NEO3", JSON.stringify(arr));
         codeStore.initCode(id, name, language, code, false);
         this.currentFile = { id, deploy: false };
         return id;

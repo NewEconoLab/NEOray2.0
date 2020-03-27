@@ -46,9 +46,9 @@ class InvokeStore implements IInvokeStore {
                     "type": OutputType.tree,
                     "title": `${intl.message.output[ 2 ]}：${intl.message.output[ 4 ]}：${name} TXID：${result.txid}`,
                     "value": {
-                        'System Fee': sysfee ? sysfee + "GAS" : "0GAS",
-                        'Network Fee': netfee ? netfee + "GAS" : "0GAS",
-                        'Attached Gas': attached ? netfee + "GAS" : "0GAS",
+                        // 'System Fee': sysfee ? sysfee + "GAS" : "0GAS",
+                        // 'Network Fee': netfee ? netfee + "GAS" : "0GAS",
+                        // 'Attached Gas': attached ? netfee + "GAS" : "0GAS",
                         "Invoke Argument": JSON.stringify(args, null, 3),
                         // 'Script hex': script.toHexString()
                     }
@@ -62,7 +62,7 @@ class InvokeStore implements IInvokeStore {
                                 "type": OutputType.tree,
                                 "title": `${intl.message.output[ 3 ]}：${intl.message.output[ 4 ]}：${name} TXID：${result.txid}`,
                                 "value": {},
-                                "result": res,
+                                "result": res ? res[ 0 ] : res,
                                 "txid": result.txid
                             }
                         )
