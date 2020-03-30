@@ -78,8 +78,26 @@ export default class Support extends React.Component<IProps> {
                     <div className="about-href" ><img src={ require("@/img/github.png") } alt="" /><a target="_bank" href="https://github.com/NewEconoLab/NEOray2.0">GitHub</a></div>
                     <div className="about-href" ><img src={ require("@/img/liulanqi.png") } alt="" /><a target="_bank" href="https://scan.nel.group/">{ this.props.intl.message.about[ 7 ] }</a></div>
                 </div>
+                <div className="other">
+                    <div className="other-title">{ this.props.intl.message.about[ 8 ] }</div>
+                    <Button
+                        text={ this.props.intl.message.button[ 14 ] }
+                        btnSize="bg-btn"
+                        btnColor="gray-btn"
+                        onClick={ this.handleOnDownload }
+                    />
+                </div>
             </>
         )
+    }
+
+    private handleOnDownload = () => {
+        const a = document.createElement('a') // 创建a标签
+        const e = document.createEvent('MouseEvents') // 创建鼠标事件对象
+        e.initEvent('click', false, false) // 初始化事件对象
+        a.href = "https://github.com/NewEconoLab/TeemoWallet/releases/download/V1.0.2/Teemo-NEO3-1.0.2.zip" // 设置下载地址
+        a.download = "Teemo-NEO3-1.0.2.zip" // 设置下载文件名
+        a.dispatchEvent(e)
     }
 
     // 复制地址

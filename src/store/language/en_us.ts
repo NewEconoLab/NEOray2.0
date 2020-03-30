@@ -13,6 +13,7 @@ export default {
     11: "Deploy contract",
     12: "Confirm",
     13: "Cancel",
+    14: "Download TeemoNEO3"
   },
   code: {
     1: "Not deployed"
@@ -80,6 +81,7 @@ export default {
     5: "Welcome to our community",
     6: "NEL Developer Forum",
     7: "Blockchain explorer",
+    8: "NEORAY now supports NEO3 contract compilation and debugging.Connect to TeemoNEO3 to use the NEO3 compiler."
   },
   output: {
     1: "Output",

@@ -84,7 +84,7 @@ window.addEventListener('Teemo.NEO.DISCONNECTED', (data: CustomEvent) => {
 // }
 
 // 初始化鼠标随机方法
-Neo.Cryptography.RandomNumberGenerator.startCollectors();
+// Neo.Cryptography.RandomNumberGenerator.startCollectors();
 
 const ObserverRender = observer(() => {
     if (!common.isSetedAddress) {

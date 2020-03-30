@@ -13,6 +13,7 @@ export default {
     11: "部署合约",
     12: "确认",
     13: "取消",
+    14: "下载TeemoNEO3版"
   },
   code: {
     1: "未部署"
@@ -80,6 +81,7 @@ export default {
     5: "欢迎访问我们的社区",
     6: "NEL开发者论坛",
     7: "区块链浏览器",
+    8: "NEORAY现已支持NEO3合约编译调试连接TeemoNEO3版后即可使用"
   },
   output: {
     1: "输出",
