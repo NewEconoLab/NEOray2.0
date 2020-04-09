@@ -7067,7 +7067,7 @@ var ThinNeo;
             if ( r === void 0 ) { r = 8; }
             if ( p === void 0 ) { p = 8; }
             var pp = scrypt.getAvailableMod();
-            scrypt.setResPath( 'dist/lib/asset' );
+            scrypt.setResPath( 'lib/asset' );
             var addresshash = null;
             var ready = function ()
             {
@@ -7200,7 +7200,7 @@ var ThinNeo;
             var addresshash = buffer.subarray( 3, 3 + 4 );
             var encryptedkey = buffer.subarray( 7, 7 + 32 );
             var pp = scrypt.getAvailableMod();
-            scrypt.setResPath( 'dist/lib/asset' );
+            scrypt.setResPath( 'lib/asset' );
             var ready = function ()
             {
                 var param = {
@@ -9034,7 +9034,7 @@ var ThinNeo;
                                 }
                                 this.careinfo.push( new CareItem( p, runstate ) );
                             }
-                            else if ( op.op == ThinNeo.OpCode.CALL )
+                            else if ( op.op == ThinNeo.OpCode.CALL || op.op == ThinNeo.OpCode.CALLA || op.op == ThinNeo.OpCode.CALL_L )
                             {
                                 var _lastScript = new ThinNeo.SmartContract.Debug.LogScript( this.lastScript.hash );
                                 _lastScript.parent = this.lastScript;
@@ -9212,7 +9212,7 @@ var ThinSdk;
                 for ( var _a = 0, accounts_1 = accounts; _a < accounts_1.length; _a++ )
                 {
                     var account = accounts_1[ _a ];
-                    this.Call( "balanceOf", { type: "Address", value: account.toString() } );
+                    this.Call( "balanceOf", { type: "Address", value: account } );
                 }
             };
             BaseToken.prototype.balanceOf_Unite = function ()
@@ -9226,7 +9226,7 @@ var ThinSdk;
                 for ( var _a = 0, accounts_2 = accounts; _a < accounts_2.length; _a++ )
                 {
                     var account = accounts_2[ _a ];
-                    this.Call( "balanceOf", { type: "Address", value: account.toString() } );
+                    this.Call( "balanceOf", { type: "Address", value: account } );
                     this.scriptBuilder.Emit( ThinNeo.OpCode.ADD );
                 }
             };
