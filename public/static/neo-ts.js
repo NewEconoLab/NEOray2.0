@@ -6414,7 +6414,11 @@ var ThinSdk;
             var cosigner = new Neo.Cosigner();
             cosigner.scopes = Neo.WitnessScope.CalledByEntry;
             cosigner.account = sender;
+<<<<<<< HEAD
             this.tran.cosigners = [];
+=======
+            this.tran.cosigners = [ cosigner ];
+>>>>>>> 24cd82cd21be76c6cefa38e1122ce891aeb7fc0e
             this.tran.attributes = [];
             this.tran.systemFee = Neo.Long.ZERO;
             this.tran.networkFee = Neo.Long.ZERO;
@@ -6434,7 +6438,11 @@ var ThinSdk;
             {
             }
             this.tran.networkFee = this.tran.networkFee.add( this.tran.GetMessage().length ).add( 110 ).mul( 1000 ).add( networkFee );
+<<<<<<< HEAD
             this.tran.systemFee = Neo.Long.fromNumber( sysFee );
+=======
+            this.tran.systemFee = Neo.Long.fromNumber( sysFee ).div( 100000000 ).add( 1 ).mul( 100000000 );
+>>>>>>> 24cd82cd21be76c6cefa38e1122ce891aeb7fc0e
             console.log( "Transaction SystemFee", this.tran.systemFee.toNumber() );
             console.log( "Transaction NetworkFee", this.tran.networkFee.toNumber() );
             var data = this.tran.GetMessage();
@@ -7551,7 +7559,10 @@ var ThinNeo;
         {
             var ms = new Neo.IO.MemoryStream();
             var writer = new Neo.IO.BinaryWriter( ms );
+<<<<<<< HEAD
             writer.writeUint32( 1951352142 );         // NEO 新增的随机数
+=======
+>>>>>>> 24cd82cd21be76c6cefa38e1122ce891aeb7fc0e
             this.SerializeUnsigned( writer );
             var arr = ms.toArray();
             var msg = new Uint8Array( arr, 0, arr.byteLength );
