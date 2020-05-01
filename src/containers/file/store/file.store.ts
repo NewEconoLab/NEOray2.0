@@ -1,7 +1,7 @@
 import { IContract, IFileStore } from "./interface/file.interface";
 import { observable, action } from 'mobx';
 import common from '@/store/common';
-import { getContractRemarkByAddress, getContractDeployInfoByHash, readOssFile } from "@/containers/code/store/api/common.api";
+import { getContractRemarkByAddress, getContractDeployInfoByHash, readOssFile, getContractTemplateList } from "@/containers/code/store/api/common.api";
 import codeStore from "@/containers/code/store/code.store";
 class FileStore implements IFileStore {
 
@@ -9,6 +9,7 @@ class FileStore implements IFileStore {
     @observable public deployList: IContract[] = [];
     @observable public loadList: IContract[] = [];
     @observable public currentFile: { id: string, deploy: boolean } = { id: "", deploy: false };
+    @observable public contractTemplateList: Array<{ name: string, filename: string, fileurl: string }> = [];
 
     // 创建合约
     @action public createContract = (filename: string) => {
@@ -165,6 +166,8 @@ class FileStore implements IFileStore {
         const result = await readOssFile(hash, language, false);
         if (result) {
             codeStore.initCode(hash, contractinfo.name, language, result, true);
+            const id = this.initFileCode(contractinfo.name + "." + language, result);
+            localStorage.setItem(id, result);
             this.currentFile = { id: hash, deploy: true };
         }
         const files = localStorage.getItem('NEORAY_FILES_HASHLOAD_NEO3');
@@ -235,6 +238,13 @@ class FileStore implements IFileStore {
         }
         else {
             this.openFileCode(this.currentFile.id);
+        }
+    }
+
+    @action public initContractTemplateList = async () => {
+        const result = await getContractTemplateList();
+        if (result) {
+            this.contractTemplateList = result[ 0 ][ 'list' ];
         }
     }
 }

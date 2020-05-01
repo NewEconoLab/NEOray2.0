@@ -5,14 +5,17 @@ import { ICommonStore } from '@/store/interface/common.interface';
 import { inject, observer } from 'mobx-react';
 import q1 from '@/img/help.png';
 // import Input from '@/components/Input';
-import Select from '@/components/select';
+import Select, { IOptions } from '@/components/select';
 import Button from '@/components/Button';
 import { ArgumentsTree } from './ArgumentsTree';
 import { ICodeStore } from '../code/store/interface/code.interface';
-import { IArgument, IInvokeStore } from './store/interface/invoke.interface';
+import { IArgument, IInvokeStore, IParameter } from './store/interface/invoke.interface';
 import { notification } from 'antd';
 import { IIntl } from '@/store/interface/intl.interface';
 import { IDebugStore } from '../debug/store/interface/debug.interface';
+import { ParametersTree } from './ParametersTree';
+import { IDeployStore } from '../deploy/store/interface/deploy.interface';
+// import Input from '@/components/Input';
 // import MonacoEditor from 'react-monaco-editor';
 // import { editor } from 'monaco-editor';
 
@@ -25,32 +28,58 @@ interface IProps {
     code: ICodeStore,
     debug: IDebugStore,
     invoke: IInvokeStore,
+    deploy: IDeployStore,
     intl: IIntl,
 }
+// interface parameter {
+//     name: string,
+//     type: "String" | "Integer" | "Array" | ""
+// }
 interface IState {
     args: IArgument[],
+    params: IParameter[],
     jsonStr: string,
     netfee: string,
     sysfee: string,
     attached: string,
+    argmuntLabel: number,
+    contractAbi: any,
+    callState: string,
+    methodsAbi: Array<{ name: string, parameters: Array<{ name: string, type: string, value: any }>, returnType: string }>,
+    currentParameters: IParameter[],
+    currentFunctionName: string,
 }
-@inject('common', 'code', 'invoke', 'intl', 'debug')
+@inject('common', 'code', 'invoke', 'intl', 'debug', 'deploy')
 @observer
 export default class Invoke extends React.Component<IProps, IState> {
 
     public state: IState = {
         args: [],
+        params: [],
         jsonStr: "",
         netfee: "",
         sysfee: "",
-        attached: ""
+        attached: "",
+        argmuntLabel: 0,
+        contractAbi: {},
+        methodsAbi: [],
+        currentParameters: [],
+        callState: 'invokeRead',
+        currentFunctionName: ''
     }
+
+    private callOptions = [ { id: 'invokeRead', name: "在AVM虚拟机试运行" }, { id: 'invoke', name: "在测试网发交易" } ]
 
     public componentDidMount() {
         this.props.debug.stopDebug();
+        this.props.invoke.initAbiArgs()
+            .then(abi => {
+                this.setState({ contractAbi: abi, methodsAbi: abi[ 'methods' ] })
+            })
     }
 
     public render() {
+
         return (
             <>
                 <div className="header" >
@@ -62,63 +91,65 @@ export default class Invoke extends React.Component<IProps, IState> {
                 </div>
                 { this.props.code.deploy ?
                     <div className="invoke-box">
-                        <div className="invoke-title">{ this.props.intl.message.invoke[ 4 ] }：{ this.props.code.filename }</div>
-                        {/* <div className="invoke-arg">
-                            <div className="arg-title">
-                                { this.props.intl.message.invoke[ 5 ] }
-                            </div>
-                            <div className="arg-value">
-                                <Input type="text" value={ this.state.sysfee } onChange={ this.onSysFeeChange } placeholder="" />
-                            </div>
-                        </div>
+                        <div className="invoke-title"> <div>{ this.props.intl.message.invoke[ 4 ] }：</div><div className="input">{ this.props.code.filename }</div></div>
                         <div className="invoke-arg">
-                            <div className="arg-title">
-                                { this.props.intl.message.invoke[ 6 ] }
-                            </div>
-                            <div className="arg-value">
-                                <Input type="text" value={ this.state.netfee } onChange={ this.onNetFeeChange } placeholder="" />
-                            </div>
-                        </div> */}
-                        {/* <div className="invoke-arg">
-                            <div className="arg-title">
-                                { this.props.intl.message.invoke[ 7 ] }
-                            </div>
-                            <div className="arg-value">
-                                <Input type="text" value={ this.state.attached } onChange={ this.onAttached } placeholder="" />
-                            </div>
-                        </div> */}
-                        <div className="invoke-arg">
-                            <Select options={ [ { id: 'main', name: this.props.intl.message.invoke[ 8 ] } ] } text="" />
+                            <Select placeholder="选择运行环境" defaultValue={ this.callOptions[ 0 ].id } options={ this.callOptions } onCallback={ this.onCallbackState } text="" />
                         </div>
-                        {/* 以下部分为invoke参数 */ }
-                        <ArgumentsTree intl={ this.props.intl } title="" onChange={ this.onChange } arguments={ this.state.args } />
-                        {/* 以上部分为invoke参数 */ }
-                        {/* 
+                        <div className="argument-label">
+                            <div className={ this.state.argmuntLabel === 0 ? "active" : "" } onClick={ this.onLabelChange.bind(this, 0) }>使用ABI参数</div>
+                            <div className={ this.state.argmuntLabel === 1 ? "active" : "" } onClick={ this.onLabelChange.bind(this, 1) }>手动填写参数</div>
+                        </div>
+                        <div className="argumentsBox">
+                            {
+                                this.state.argmuntLabel === 0 &&
+                                <>
+                                    <div className="invoke-arg">
+                                        <div className="arg-title">
+                                            调用方法
+                                        </div>
+                                        <Select
+                                            text=""
+                                            placeholder="选择调用的方法"
+                                            onCallback={ this.onSlectMethod }
+                                            options={ this.state.methodsAbi.map(m => ({ id: m.name, name: m.name })) }
+                                        />
+                                    </div>
+                                    {
+                                        <ParametersTree intl={ this.props.intl } title="" onChange={ this.onChange } arguments={ this.state.currentParameters } />
+                                    }
+                                    {/* <Input placeholder="调用方法" onChange={} value={}/> */ }
+                                </>
+                            }
+                            {
+                                this.state.argmuntLabel === 1 &&
+                                <>
+                                    <div className="invoke-arg">
+                                        <Select options={ [ { id: 'main', name: this.props.intl.message.invoke[ 8 ] } ] } text="" />
+                                    </div>
+                                    <ArgumentsTree intl={ this.props.intl } title="" onChange={ this.onChange } arguments={ this.state.args } />
+                                </>
+                            }
+                        </div>
                         <div className="invoke-button">
-                            <Button text="增加参数" btnSize="bg-btn" />
-                        </div> 
-                        */}
-                        <div className="invoke-json">
-                            <textarea value={ this.state.jsonStr } onChange={ this.onJsonChange } />
+                            <Button text="试运行合约" btnSize="bg-btn" onClick={ this.state.callState === "invoke" ? this.invoke : this.testRun } />
                         </div>
-                        <div className="invoke-button">
-                            <div>
-                                <Button text={ this.props.intl.message.button[ 7 ] } onClick={ this.invoke } />
-                            </div>
-                            <div >
-                                <Button text={ this.props.intl.message.button[ 8 ] } onClick={ this.testRun } />
-                            </div>
-                        </div>
-
                     </div> :
 
-                    <div className="invoke-box">
+                    <div className="invoke-button message-top">
                         <div className="invoke-title"> { this.props.intl.message.invoke[ 2 ] }</div>
                         { this.props.intl.message.invoke[ 3 ] }
                     </div>
                 }
             </>
         )
+    }
+
+    private onLabelChange = (label: number) => {
+        this.setState({ currentParameters: [], args: [], argmuntLabel: label })
+    }
+
+    private onCallbackState = (option: IOptions) => {
+        this.setState({ callState: option.id })
     }
 
     // private onSysFeeChange = (event: string) => {
@@ -139,17 +170,44 @@ export default class Invoke extends React.Component<IProps, IState> {
         console.log(event);
     }
 
-    private onJsonChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-        this.setState({ jsonStr: event.target.value })
+    private onSlectMethod = (event: IOptions) => {
+        console.log(event.id);
+        const methodabi = this.state.methodsAbi.find(m => m.name === event.id);
+        if (methodabi) {
+            this.setState({ currentParameters: methodabi.parameters, currentFunctionName: event.id });
+        }
     }
 
+    // private onJsonChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    //     this.setState({ jsonStr: event.target.value })
+    // }
+
     private testRun = () => {
-        this.props.invoke.invokeRead(this.state.args);
+        if (this.state.argmuntLabel === 0) {
+            this.props.invoke.invokescript({
+                scriptHash: this.props.deploy.currentCompileContractHash.replace('0x', ''),
+                operation: this.state.currentFunctionName,
+                arguments: this.state.args as Argument[]
+            })
+        }
+        else {
+            this.props.invoke.invokeRead(this.state.args);
+        }
     }
 
     private invoke = async () => {
         try {
-            const result = await this.props.invoke.invoke(this.state.args as Argument[], this.state.netfee, this.state.sysfee, this.state.attached);
+            let result;
+            if (this.state.argmuntLabel === 0) {
+                result = await this.props.invoke.invokesend({
+                    scriptHash: this.props.deploy.currentCompileContractHash.replace('0x', ''),
+                    operation: this.state.currentFunctionName,
+                    arguments: this.state.args as Argument[]
+                });
+            }
+            else {
+                result = await this.props.invoke.invoke(this.state.args as Argument[], this.state.netfee, this.state.sysfee, this.state.attached);
+            }
             if (result) {
                 notification.success({ message: this.props.intl.message.toast[ 6 ], duration: 3 })
             }

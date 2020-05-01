@@ -27,10 +27,13 @@ class Alertbox extends React.Component<IProps, any> {
           </div>
           <div className="alert-text">{ this.props.title }</div>
           { this.props.children }
-          <div className="alert-btn-wrapper">
-            { this.props.onCancel && <Button text={ this.props.intl.message.button[ 13 ] } onClick={ this.handleToCancel } /> }
-            { this.props.onConfirm && <Button text={ this.props.intl.message.button[ 12 ] } onClick={ this.handleToConfirm } btnColor="blue-btn" /> }
-          </div>
+          {
+            (this.props.onCancel || this.props.onConfirm) &&
+            <div className="alert-btn-wrapper">
+              { this.props.onCancel && <Button text={ this.props.intl.message.button[ 13 ] } onClick={ this.handleToCancel } /> }
+              { this.props.onConfirm && <Button text={ this.props.intl.message.button[ 12 ] } onClick={ this.handleToConfirm } btnColor="blue-btn" /> }
+            </div>
+          }
         </div>
       </div>
     )

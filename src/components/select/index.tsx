@@ -9,11 +9,11 @@ import './index.less';
 export interface IOptions {
 	id: string,
 	name: string,
-	icon?: any
+	other?: any
 }
 interface IProps {
 	options: IOptions[],
-	text: string,
+	text?: string,
 	onCallback?: (event: IOptions) => void,
 	big?: boolean,
 	size?: string,

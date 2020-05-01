@@ -1,7 +1,9 @@
 export interface IDeployStore {
+    currentCompileContractHash: string;
     getDeployInfo: (hash: string) => Promise<IContractDeployInfo>
     deploy: (params: DeployContractArgs, payable: boolean, storage: boolean) => Promise<InvokeOutput>
-    compile: () => Promise<{
+    getVersion: () => Promise<string[]>;
+    compile: (version) => Promise<{
         scripthash: string,     // 合约hash
         nefhex: string,         // avm hex字符串
         // download: string,

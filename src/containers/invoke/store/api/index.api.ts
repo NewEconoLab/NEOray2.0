@@ -8,3 +8,11 @@ export const invokescript = async (scripthex: string) => {
     }
     return request(opts);
 }
+
+export const getcontractstate = (scriptHash: string) => {
+    return request({
+        method: 'getcontractstate',
+        params: [ scriptHash ],
+        baseUrl: 'common'
+    })
+}

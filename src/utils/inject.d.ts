@@ -72,7 +72,7 @@ interface InvokeArgs {
     operation: string;
     fee?: string;
     sys_fee?: string;
-    network: "TestNet" | "MainNet";
+    network?: "TestNet" | "MainNet";
     arguments: Array<Argument>;
     attachedAssets?: AttachedAssets;
     description?: string;
@@ -83,7 +83,7 @@ interface InvokeReadInput {
     scriptHash: string;
     operation: string;
     arguments?: Argument[];
-    network: string;
+    network?: string;
 }
 interface InvokeReadGroup {
     group: InvokeReadInput[];

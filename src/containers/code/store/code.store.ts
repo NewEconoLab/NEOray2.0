@@ -26,6 +26,9 @@ class CodeStore implements ICodeStore {
      * @param deploy 是否已经部署
      */
     @action public initCode = (id: string, filename: string, language: string, code: string, deploy: boolean) => {
+        if (this.codeid !== "" && this.codeid !== id) {
+            sessionStorage.setItem("NEORAY-NEO3-compile-hash", "");
+        }
         this.codeid = id;
         this.filename = filename;
         this.language = language === 'py' ? 'python' : 'csharp';

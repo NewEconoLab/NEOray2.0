@@ -8,10 +8,12 @@ import { Tooltip } from 'antd';
 import Alertbox from '@/components/Alertbox';
 import Input from '@/components/Input';
 import { ICodeStore } from '../code/store/interface/code.interface';
-import FileTree from './filetree';
-import { IContract, IFileStore } from './store/interface/file.interface';
+// import FileTree from './filetree';
+import { IFileStore } from './store/interface/file.interface';
 import { IIntl } from '@/store/interface/intl.interface';
 import { IDebugStore } from '../debug/store/interface/debug.interface';
+import Select, { IOptions } from '@/components/select';
+import { readFile } from '../code/store/api/common.api';
 
 interface IProps {
     route: {
@@ -39,11 +41,15 @@ export default class SelectFile extends React.Component<IProps> {
         scripthash: '',
         delFileName: '',
         codeid: '',
+        showHistory: false,
+        optionModel: [],
+        modelUrl: ""
     }
 
     public componentDidMount() {
         this.props.file.initFileList();
         this.props.debug.stopDebug();
+        this.initTemplateList();
     }
 
     public render() {
@@ -65,13 +71,16 @@ export default class SelectFile extends React.Component<IProps> {
                             <Tooltip title={ this.props.intl.message.files[ 4 ] } placement="bottom">
                                 <img src={ require("@/img/jiazai.png") } alt="" onClick={ this.importFile } />
                             </Tooltip>
+                            <Tooltip title={ this.props.intl.message.files[ 4 ] } placement="bottom">
+                                <img src={ require("@/img/model.png") } alt="" onClick={ this.importModel } />
+                            </Tooltip>
                         </div>
                     </div>
                 </div>
                 <div className="sidebar-body">
-                    { this.props.file.filelist.length > 0 &&
-                        <FileTree title={ this.props.intl.message.files[ 5 ] }>
-                            { this.props.file.filelist.map((item, key) => {
+                    <div className="file-list">
+                        { this.props.file.filelist.length > 0 &&
+                            this.props.file.filelist.map((item, key) => {
                                 return (
                                     <Dropdown key={ key } overlay={ this.newfilemenu.bind(this, item.id, item.name, item.language) } trigger={ [ 'contextMenu' ] }>
                                         <div className="select-value" onClick={ this.onFileClick.bind(this, item) }>
@@ -79,33 +88,9 @@ export default class SelectFile extends React.Component<IProps> {
                                         </div>
                                     </Dropdown>
                                 )
-                            }) }
-                        </FileTree>
-                    }
-                    { this.props.file.loadList.length > 0 &&
-                        <FileTree title={ this.props.intl.message.files[ 7 ] }>
-                            { this.props.file.loadList.map((info, key) => {
-                                return (
-                                    <Dropdown key={ key } overlay={ this.importfilemenu.bind(this, info.scripthash) } trigger={ [ 'contextMenu' ] }>
-                                        <div className="select-value" onClick={ this.props.file.openDeployCode.bind(this, info) }>
-                                            { `${info.name}.${info[ 'language' ] ? info[ 'language' ] : 'cs'}` }
-                                        </div>
-                                    </Dropdown>
-                                )
-                            }) }
-                        </FileTree>
-                    }
-                    { this.props.file.deployList.length > 0 &&
-                        <FileTree title={ this.props.intl.message.files[ 6 ] }>
-                            { this.props.file.deployList.map(info => {
-                                return (
-                                    <div className="select-value" key={ info.scripthash } onClick={ this.showDeployContract.bind(this, info) }>
-                                        { `${info.name}.${info[ 'language' ] ? info[ 'language' ] : 'cs'}` }
-                                    </div>
-                                )
-                            }) }
-                        </FileTree>
-                    }
+                            })
+                        }
+                    </div>
                 </div>
                 { this.state.showAlert &&
                     <Alertbox intl={ this.props.intl } title={ this.state.alertTitle } onCancel={ this.handleToCancel } onClose={ this.handleToClose } onConfirm={ this.handleToConfirm } >
@@ -119,13 +104,36 @@ export default class SelectFile extends React.Component<IProps> {
                             { this.state.alertState === 2 &&
                                 <>
                                     <div className="input-title">{ this.props.intl.message.files[ 9 ] }</div>
-                                    <Input value={ this.state.scripthash } onChange={ this.onChangeFileHash } type="text" />
+                                    <div className="history-hashlist">
+                                        <Input value={ this.state.scripthash } onChange={ this.onChangeFileHash } onFocus={ this.onFocusHistory } onBlur={ this.onBlurHistory } type="text" />
+                                        {
+                                            this.state.showHistory && this.props.file.loadList && this.props.file.loadList.length > 0 &&
+                                            <div className="history-box">
+                                                {
+                                                    this.props.file.loadList.map(contract =>
+                                                        (
+                                                            <div className="li">
+                                                                <div className="text" onClick={ this.onChangeFileHash.bind(this, contract.scripthash) }>{ contract.name }.{ contract.language }({ contract.scripthash })</div>
+                                                            </div>
+                                                        )
+                                                    )
+                                                }
+                                            </div>
+                                        }
+                                    </div>
                                 </>
                             }
                             {
                                 this.state.alertState === 3 &&
                                 <>
                                     <div className="input-title">{ this.props.intl.message.files[ 10 ] }</div>
+                                </>
+                            }
+                            {
+                                this.state.alertState === 4 &&
+                                <>
+                                    <div className="input-title">选择合约模板</div>
+                                    <Select text="" options={ this.state.optionModel } onCallback={ this.onSelectFileModel } />
                                 </>
                             }
                         </div>
@@ -143,13 +151,13 @@ export default class SelectFile extends React.Component<IProps> {
             </Menu>
         );
     }
-    private importfilemenu = (hash: string) => {
-        return (
-            <Menu>
-                <Menu.Item key="1" onClick={ this.props.file.deleteLoadCode.bind(this, hash) }>{ this.props.intl.message.files[ 12 ] }</Menu.Item>
-            </Menu>
-        );
-    }
+    // private importfilemenu = (hash: string) => {
+    //     return (
+    //         <Menu>
+    //             <Menu.Item key="1" onClick={ this.props.file.deleteLoadCode.bind(this, hash) }>{ this.props.intl.message.files[ 12 ] }</Menu.Item>
+    //         </Menu>
+    //     );
+    // }
 
     private onFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files) {
@@ -184,7 +192,7 @@ export default class SelectFile extends React.Component<IProps> {
         this.setState({
             showAlert: true,
             alertTitle: this.props.intl.message.files[ 2 ],
-            alertState: 2,
+            alertState: 2
         })
     }
 
@@ -193,6 +201,15 @@ export default class SelectFile extends React.Component<IProps> {
             showAlert: true,
             alertTitle: this.props.intl.message.files[ 14 ],
             alertState: 2,
+            scripthash: ""
+        })
+    }
+
+    private importModel = () => {
+        this.setState({
+            showAlert: true,
+            alertTitle: "载入模板",
+            alertState: 4,
         })
     }
 
@@ -200,7 +217,7 @@ export default class SelectFile extends React.Component<IProps> {
         this.setState({
             showAlert: true,
             alertTitle: this.props.intl.message.files[ 15 ],
-            alertState: 4,
+            alertState: 5,
             delFileName: filename
         })
     }
@@ -247,6 +264,13 @@ export default class SelectFile extends React.Component<IProps> {
                 })
         }
         if (this.state.alertState === 4) {
+            readFile(this.state.modelUrl)
+                .then(code => {
+                    const id = this.props.file.initFileCode(this.state.filename, code);
+                    localStorage.setItem(id, code);
+                })
+        }
+        if (this.state.alertState === 5) {
             this.props.file.deleteToCodeList(this.state.delFileName);
         }
     }
@@ -257,6 +281,14 @@ export default class SelectFile extends React.Component<IProps> {
         })
     }
 
+    private onFocusHistory = () => {
+        this.setState({ showHistory: true })
+    }
+
+    private onBlurHistory = () => {
+        this.setState({ showHistory: false });
+    }
+
     private onChangeFileHash = (event) => {
         this.setState({ scripthash: event })
     }
@@ -265,12 +297,22 @@ export default class SelectFile extends React.Component<IProps> {
         this.setState({ filename: event })
     }
 
+    private onSelectFileModel = (option: IOptions) => {
+        this.setState({ filename: option.id, modelUrl: option.other });
+    }
+
     private onFileClick = (file) => {
         this.props.file.openFileCode(file.id);
     }
 
-    private showDeployContract = (code: IContract) => {
-        this.props.file.openDeployCode(code);
+    private initTemplateList = async () => {
+        await this.props.file.initContractTemplateList();
+        const list = this.props.file.contractTemplateList.map(item => ({
+            id: item.filename,
+            name: item.name,
+            other: item.fileurl
+        }));
+        this.setState({ optionModel: list })
     }
 
 }

@@ -95,6 +95,8 @@ class DebugStore implements IDebugStore {
                 notification.error({ "message": "当前交易未收录" })
             }
         } catch (error) {
+            console.log(error);
+
             notification.error({ "message": "当前交易未收录" })
         }
     }
@@ -258,7 +260,6 @@ class DebugStore implements IDebugStore {
         // const result = await Teemo.NEO.getApplicationLog({ "txid": this.currentTxid, "network": "TestNet" });
         this.notify = JSON.stringify(result ? result[ 0 ] : {}, null, 2);
     }
-
 
     public showCareInfo(careArray: ThinNeo.Debug.CareItem[]) {
         const div = document.getElementById("careInfo-msg") as HTMLDivElement;

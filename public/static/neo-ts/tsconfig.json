@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "module": "System",
+    "target": "es5",
+    "declaration": true,
+    "sourceMap": true,
+    "removeComments": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "outFile": "../lib/neo-ts.js",
+    "strict": false,
+    "composite": true
+  }
+}

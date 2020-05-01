@@ -28,11 +28,11 @@ export class Arguments extends React.Component<IProps, IState>{
     private paramType = [
         { id: 'none', name: this.props.intl.message.invoke[ 10 ] },
         { id: 'String', name: 'String' },
+        { id: 'hex160', name: 'hex160' },
+        { id: 'hex256', name: 'hex256' },
         { id: 'Integer', name: 'Integer' },
         { id: 'Address', name: 'Address' },
         { id: 'bytearray', name: 'bytearray' },
-        { id: 'hex256', name: 'hex256' },
-        { id: 'hex160', name: 'hex160' },
         { id: 'Array', name: this.props.intl.message.invoke[ 11 ] }
     ]
 
@@ -65,9 +65,15 @@ export class Arguments extends React.Component<IProps, IState>{
 
     private onSelectChange = (event: IOptions) => {
         const args = this.props.arguments;
-        args.type = event.id;
-        if (event.id === "Array") {
-            args.value = [];
+        if (event) {
+            args.type = event.id;
+            if (event.id === "Array") {
+                args.value = [];
+            }
+        }
+        else {
+            args.type = 'none';
+            args.value = undefined;
         }
         this.setState({ arguments: args }, () => {
             this.props.onChange(this.props.title, this.props.index, args)

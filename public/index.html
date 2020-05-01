@@ -34,7 +34,6 @@
   <script src="./dist/lib/component/pad-nopadding.js"></script>
   <script src="./dist/lib/scrypt.js"></script>
   <script src="./dist/lib/neo-ts.js"></script>
-  <script src="./dist/app.js"></script>
   <link rel="manifest" href="%PUBLIC_URL%/manifest.json">
   <link rel="shortcut icon" href="%PUBLIC_URL%/favicon.ico">
   <!--
@@ -48,27 +47,6 @@
     -->
 
   <title>NEOray</title>
-  <script>
-    ( function ()
-    {
-      //初始化REM
-      var w = 750;
-      var setFontSize = function ()
-      {
-        var width = document.documentElement.clientWidth;
-        //width = width > w ? w: width;
-        var fontSize = parseInt( width / w * 200 );
-        if ( width > 768 )
-        {
-          w = 1440
-          fontSize = parseInt( width / w * 100 );
-        }
-        document.getElementsByTagName( "html" )[ 0 ].style.fontSize = fontSize + "px";
-      };
-      setFontSize();
-      window.onresize = setFontSize;
-    } )();
-  </script>
 </head>
 
 <body>

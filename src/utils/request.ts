@@ -12,6 +12,7 @@ interface IOpts {
 const network = 'testnet'
 const baseCommonUrl: string = "https://apineo3dev.nel.group/api/testnet";
 const baseUrl: string = "https://apidebugneo3dev.nel.group/api/" + network;
+const rpcUrl: string = "http://47.99.35.147:20332";
 
 const makeRpcPostBody = (method: string, params: any): {} => {
 
@@ -31,6 +32,9 @@ export default function request(opts: IOpts): Promise<any> {
   let url = baseUrl;
   if (opts.baseUrl === 'common') {
     url = baseCommonUrl;
+  }
+  if (opts.baseUrl === 'rpc') {
+    url = rpcUrl;
   }
   const params = makeRpcPostBody(opts.method, opts.params);
   const args = {

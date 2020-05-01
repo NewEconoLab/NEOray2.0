@@ -3,6 +3,7 @@ export interface IFileStore {
     loadList: IContract[],
     deployList: IContract[],
     currentFile: { id: string, deploy: boolean };
+    contractTemplateList: Array<{ name: string, filename: string, fileurl: string }>;
     createContract: (filename: string) => boolean
     addToCodeList: (filename: string) => string
     setToCodeList: (id: string, filename: string) => void,
@@ -11,9 +12,10 @@ export interface IFileStore {
     openDeployCode: (code: IContract) => Promise<void>;
     initLoadCode: (hash: string) => Promise<boolean>;
     initFileCode: (filename: string, code: string) => string;
-    openFileCode: (fileid: string) => void
+    openFileCode: (fileid: string) => void;
     deleteLoadCode: (hash: string) => void;
-    toCurrentFile: () => void
+    toCurrentFile: () => void;
+    initContractTemplateList: () => void;
 }
 export interface IContract {
     name: string,

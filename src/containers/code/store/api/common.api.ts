@@ -24,10 +24,24 @@ export const getContractDeployInfoByHash = (hash: string) => {
     return request(opts);
 }
 
+export const readFile = async (url: string) => {
+    try {
+        const result = await fetch(url, { "method": "get" });
+        if (result.status === 200) {
+            const text = await result.text();
+            return text;
+        }
+        else {
+            return "";
+        }
+    } catch (error) {
+        return "";
+    }
+}
+
 export const readOssFile = async (name: string, filename: string, temp: boolean) => {
     try {
-
-        const str = "https://online-debug-data.oss-cn-hangzhou.aliyuncs.com/" + (temp ? "_temp" : "") + name + "." + filename;
+        const str = "https://online-debug-data.oss-cn-hangzhou.aliyuncs.com/" + (temp ? "temp_" : "") + name + "." + filename;
         const result = await fetch(str, { "method": "get" });
         if (result.status === 200) {
             const text = await result.text();
@@ -39,6 +53,18 @@ export const readOssFile = async (name: string, filename: string, temp: boolean)
     } catch (error) {
         return "";
     }
+}
+
+/**
+ * 获取合约模板列表
+ * @param page 页数
+ * @param count 数量
+ */
+export const getContractTemplateList = (page: number = 1, count: number = 10) => {
+    return request({
+        method: 'getContractTemplateList',
+        params: [ page, count ]
+    });
 }
 
 export const compileContractFile = (address: string, code: string, version: string) => {

@@ -8,6 +8,19 @@
     .invoke-title{
         font-size: 14px;
         margin-bottom: 15px;
+        div{
+            display: inline-block;
+        }
+        .input{            
+            display: inline-block;
+            width: 238px;
+            background: #545454;
+            box-shadow: inset 0 -1px 1px 0 #828282;
+            border-radius: 3px;
+            height: 30px;
+            line-height: 30px;
+            padding-left: 15px;
+        }
     }
     .invoke-arg{
         margin-bottom: 15px;
@@ -35,7 +48,7 @@
         }
     }
     .invoke-button{
-        margin-bottom: 20px;
+        padding-top: 20px;
         display: flex;
         >div{
             flex: auto;
@@ -61,4 +74,40 @@
             resize:none; 
         }
     }
+    .argument-label{
+        overflow:hidden;
+        border-radius: 3px 3px 0px 0px;
+        height: 30px;
+        font-size: 14px;
+        color: #FFFFFF;
+        text-align: center;
+        background: #4D4B53;
+        >div{
+            display: inline-block;
+            width: 140px;
+            height: 30px;
+            line-height: 30px;
+            cursor: pointer;
+        }
+        .active{
+            background: #3D3B41;
+            color: #E5E5E5;
+            text-align: center;
+        }
+    }
+    .argumentsBox{
+        background: #3D3B41;
+        border-radius: 0px 0px 3px 3px;
+        padding: 20px 10px;
+        .invoke-button{
+            padding-top: 0px;
+            display: flex;
+        }      
+    }
+}
+.message-top{
+    font-size: 12px;
+    color: #FFFFFF;
+    text-align: justify;
+    margin: 20px 15px;
 }

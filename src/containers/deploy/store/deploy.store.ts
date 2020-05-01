@@ -5,7 +5,7 @@ import {
     storageContractFile,
     compilePythonContractFile, compileContractFile, getContractCodeByHash, getCompilerVersions
 } from "@/containers/code/store/api/common.api";
-import { action } from "mobx";
+import { action, observable } from "mobx";
 import common from "@/store/common";
 import { OutputType } from "@/containers/output/store/interface/index.interface";
 import codeStore from "@/containers/code/store/code.store";
@@ -13,23 +13,47 @@ import { TransactionConfirm } from "@/utils/wallet";
 // import fileStore from "@/containers/file/store/file.store";
 import intl from "@/store/intl";
 import fileStore from "@/containers/file/store/file.store";
+import { getcontractstate } from "@/containers/invoke/store/api/index.api";
 
 class DeployStore implements IDeployStore {
+
+    @observable public currentCompileContractHash: string = "";          // 未部署合约的codeid是存入本地存储时，根据时间戳生成的。已部署合约的id是scripthash
+
     @action public getDeployInfo = async (hash: string) => {
         try {
-            const result: IContractDeployInfo = (await getContractDeployInfoByHash(hash))[ 0 ];
-            const manifest = await readOssFile(hash, 'manifest.json', false);
-            const nef = await readOssFile(hash, 'nef', false);
-            result.manifest = JSON.parse(manifest);
-            result.nef = nef
-            return result;
+            let result = {};
+            try {
+                const contractstate = await getcontractstate(hash);
+                if (contractstate && contractstate[ 0 ]) {
+                    codeStore.deploy = true;
+                    result = (await getContractDeployInfoByHash(hash))[ 0 ];
+                }
+                else {
+                    codeStore.deploy = false;
+                    result[ 'name' ] = codeStore.filename;
+                    result[ 'scripthash' ] = hash;
+                }
+            } catch (error) {
+                codeStore.deploy = false;
+                result[ 'name' ] = codeStore.filename;
+                result[ 'scripthash' ] = hash;
+            }
+            const manifest = await readOssFile(hash, 'manifest.json', !codeStore.deploy);
+            const nef = await readOssFile(hash, 'nef', !codeStore.deploy);
+            result[ 'manifest' ] = JSON.parse(manifest);
+            result[ 'nef' ] = nef;
+            return result as IContractDeployInfo;
         } catch (error) {
             throw error;
         }
     }
-    @action public compile = async () => {
+
+    @action public getVersion = async () => {
+        return getCompilerVersions();
+    }
+
+    @action public compile = async (version) => {
         let result;
-        const version = (await getCompilerVersions())[ 0 ];
         if (codeStore.language === "python") {
             result = await compilePythonContractFile(
                 common.address,
@@ -50,11 +74,24 @@ class DeployStore implements IDeployStore {
                 const nefhex = coderesult[ 0 ].nef;
                 const manifest = JSON.parse(coderesult[ 0 ].manifest);
                 OutputStore.addOutputMessage({ title: "", type: OutputType.default, value: { [ intl.message.output[ 5 ] ]: "hash：" + result[ 0 ].hash } })
+                this.currentCompileContractHash = scripthash;
+                try {
+
+                    const contractstate = await getcontractstate(scripthash);
+                    if (contractstate && contractstate[ 0 ]) {
+                        codeStore.deploy = true;
+                    }
+                    else {
+                        codeStore.deploy = false;
+                    }
+                } catch (error) {
+                    codeStore.deploy = false;
+                }
                 return {
                     scripthash,     // 合约hash
                     nefhex,         // avm hex字符串
                     manifest,
-                    deploy: true,
+                    deploy: codeStore.deploy,
                     name: codeStore.filename
                 }
             }
@@ -97,11 +134,11 @@ class DeployStore implements IDeployStore {
                 const code = codeStore.code;
                 const codeid = codeStore.codeid;
                 const language = codeStore.language;
-                fileStore.deleteToCodeList(id);
+                // fileStore.deleteToCodeList(id);
                 fileStore.initFileList();
                 if (id === codeid) {
-                    codeStore.initCode(nef.scriptHash.toString(), name, language, code, true);
-                    fileStore.currentFile = { id: nef.scriptHash.toString(), deploy: false };
+                    codeStore.initCode(id, name, language, code, true);
+                    fileStore.currentFile = { id, deploy: true };
                 }
             }))
             return result;
