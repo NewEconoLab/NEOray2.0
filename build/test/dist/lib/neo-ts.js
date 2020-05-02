@@ -6016,11 +6016,7 @@ var ThinNeo;
             if (r === void 0) { r = 8; }
             if (p === void 0) { p = 8; }
             var pp = scrypt.getAvailableMod();
-<<<<<<< HEAD
             scrypt.setResPath('lib/asset');
-=======
-            scrypt.setResPath( 'lib/asset' );
->>>>>>> 24cd82cd21be76c6cefa38e1122ce891aeb7fc0e
             var addresshash = null;
             var ready = function () {
                 var param = {
@@ -6133,14 +6129,8 @@ var ThinNeo;
             var addresshash = buffer.subarray(3, 3 + 4);
             var encryptedkey = buffer.subarray(7, 7 + 32);
             var pp = scrypt.getAvailableMod();
-<<<<<<< HEAD
             scrypt.setResPath('lib/asset');
             var ready = function () {
-=======
-            scrypt.setResPath( 'lib/asset' );
-            var ready = function ()
-            {
->>>>>>> 24cd82cd21be76c6cefa38e1122ce891aeb7fc0e
                 var param = {
                     N: n,
                     r: r,
@@ -7702,14 +7692,8 @@ var ThinNeo;
                                 }
                                 this.careinfo.push(new CareItem(p, runstate));
                             }
-<<<<<<< HEAD
                             else if (op.op == ThinNeo.OpCode.CALL || op.op == ThinNeo.OpCode.CALLA || op.op == ThinNeo.OpCode.CALL_L) {
                                 var _lastScript = new ThinNeo.SmartContract.Debug.LogScript(this.lastScript.hash);
-=======
-                            else if ( op.op == ThinNeo.OpCode.CALL || op.op == ThinNeo.OpCode.CALLA || op.op == ThinNeo.OpCode.CALL_L )
-                            {
-                                var _lastScript = new ThinNeo.SmartContract.Debug.LogScript( this.lastScript.hash );
->>>>>>> 24cd82cd21be76c6cefa38e1122ce891aeb7fc0e
                                 _lastScript.parent = this.lastScript;
                                 _nop.subScript = _lastScript;
                                 this.lastScript = _lastScript;
@@ -7858,16 +7842,9 @@ var ThinSdk;
                 for (var _i = 0; _i < arguments.length; _i++) {
                     accounts[_i] = arguments[_i];
                 }
-<<<<<<< HEAD
                 for (var _a = 0, accounts_1 = accounts; _a < accounts_1.length; _a++) {
                     var account = accounts_1[_a];
                     this.Call("balanceOf", { type: "Address", value: account });
-=======
-                for ( var _a = 0, accounts_1 = accounts; _a < accounts_1.length; _a++ )
-                {
-                    var account = accounts_1[ _a ];
-                    this.Call( "balanceOf", { type: "Address", value: account } );
->>>>>>> 24cd82cd21be76c6cefa38e1122ce891aeb7fc0e
                 }
             };
             BaseToken.prototype.balanceOf_Unite = function () {
@@ -7875,20 +7852,11 @@ var ThinSdk;
                 for (var _i = 0; _i < arguments.length; _i++) {
                     accounts[_i] = arguments[_i];
                 }
-<<<<<<< HEAD
                 this.scriptBuilder.EmitPushNumber(Neo.BigInteger.Zero);
                 for (var _a = 0, accounts_2 = accounts; _a < accounts_2.length; _a++) {
                     var account = accounts_2[_a];
                     this.Call("balanceOf", { type: "Address", value: account });
                     this.scriptBuilder.Emit(ThinNeo.OpCode.ADD);
-=======
-                this.scriptBuilder.EmitPushNumber( Neo.BigInteger.Zero );
-                for ( var _a = 0, accounts_2 = accounts; _a < accounts_2.length; _a++ )
-                {
-                    var account = accounts_2[ _a ];
-                    this.Call( "balanceOf", { type: "Address", value: account } );
-                    this.scriptBuilder.Emit( ThinNeo.OpCode.ADD );
->>>>>>> 24cd82cd21be76c6cefa38e1122ce891aeb7fc0e
                 }
             };
             BaseToken.prototype.decimals = function () {
