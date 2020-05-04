@@ -119,7 +119,7 @@ class InvokeStore implements IInvokeStore {
     @action public invokeRead = async (args: Argument[]) => {
         const script = this.buildScript(args);
         const name = codeStore.filename;
-        const result = await invokescript(script.toHexString())[ 0 ];
+        const result = await invokescript(script.toHexString());
         OutputStore.addOutputMessage(
             {
                 "type": OutputType.tree,
@@ -128,7 +128,7 @@ class InvokeStore implements IInvokeStore {
                     "Invoke Paramenters": JSON.stringify(args),
                     "Result Code": ""
                 },
-                "result": result
+                "result": result ? result[ 0 ] : ""
             }
         )
         return result

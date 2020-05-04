@@ -134,7 +134,7 @@ export default class Deploy extends React.Component<IProps, IState> {
                             </div>
                             <div className="deploy-box">
                                 {
-                                    this.state.deploy ?
+                                    this.props.code.deploy ?
                                         <Button text="合约已部署到测试网" btnSize="full" disabled={ true } /> :
                                         <Button text="部署此合约到测试网" btnSize="full" onClick={ this.onDeploy } />
                                 }
@@ -321,6 +321,7 @@ export default class Deploy extends React.Component<IProps, IState> {
             const result = await this.props.deploy.compile(this.state.version);
             this.setState(result, () => {
                 sessionStorage.setItem("NEORAY-NEO3-compile-hash", result.scripthash);
+                sessionStorage.setItem("NEORAY-NEO3-compile-version" + result.scripthash, this.state.version);
             });
             this.setState({
                 compile: true,

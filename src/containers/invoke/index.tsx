@@ -74,7 +74,10 @@ export default class Invoke extends React.Component<IProps, IState> {
         this.props.debug.stopDebug();
         this.props.invoke.initAbiArgs()
             .then(abi => {
-                this.setState({ contractAbi: abi, methodsAbi: abi[ 'methods' ] })
+                this.setState({ contractAbi: abi, methodsAbi: abi[ 'methods' ], argmuntLabel: 0 })
+            })
+            .catch(err => {
+                this.setState({ contractAbi: {}, methodsAbi: [], argmuntLabel: 1 })
             })
     }
 
@@ -131,7 +134,7 @@ export default class Invoke extends React.Component<IProps, IState> {
                             }
                         </div>
                         <div className="invoke-button">
-                            <Button text="试运行合约" btnSize="bg-btn" onClick={ this.state.callState === "invoke" ? this.invoke : this.testRun } />
+                            <Button text="运行合约" btnSize="bg-btn" onClick={ this.state.callState === "invoke" ? this.invoke : this.testRun } />
                         </div>
                     </div> :
 

@@ -32,11 +32,15 @@ class DeployStore implements IDeployStore {
                     codeStore.deploy = false;
                     result[ 'name' ] = codeStore.filename;
                     result[ 'scripthash' ] = hash;
+                    const version = sessionStorage.getItem("NEORAY-NEO3-compile-version" + hash);
+                    result[ 'version' ] = version ? version : "";
                 }
             } catch (error) {
                 codeStore.deploy = false;
                 result[ 'name' ] = codeStore.filename;
                 result[ 'scripthash' ] = hash;
+                const version = sessionStorage.getItem("NEORAY-NEO3-compile-version" + hash);
+                result[ 'version' ] = version ? version : "";
             }
             const manifest = await readOssFile(hash, 'manifest.json', !codeStore.deploy);
             const nef = await readOssFile(hash, 'nef', !codeStore.deploy);
