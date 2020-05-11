@@ -71,7 +71,7 @@ export default class SelectFile extends React.Component<IProps> {
                             <Tooltip title={ this.props.intl.message.files[ 4 ] } placement="bottom">
                                 <img src={ require("@/img/jiazai.png") } alt="" onClick={ this.importFile } />
                             </Tooltip>
-                            <Tooltip title={ this.props.intl.message.files[ 4 ] } placement="bottom">
+                            <Tooltip title={ this.props.intl.message.files[ 16 ] } placement="bottom">
                                 <img src={ require("@/img/model.png") } alt="" onClick={ this.importModel } />
                             </Tooltip>
                         </div>
@@ -166,8 +166,6 @@ export default class SelectFile extends React.Component<IProps> {
             fr.readAsText(file);
             fr.onload = () => {
                 // fr.readAsText(file);
-                console.log(file.name, file.type);
-                console.log('fileContent', fr.result);
                 const code = fr.result;
                 if (code && typeof code === "string") {
                     this.props.file.initFileCode(file.name, code);
@@ -266,8 +264,7 @@ export default class SelectFile extends React.Component<IProps> {
         if (this.state.alertState === 4) {
             readFile(this.state.modelUrl)
                 .then(code => {
-                    const id = this.props.file.initFileCode(this.state.filename, code);
-                    localStorage.setItem(id, code);
+                    this.props.file.initFileCode(this.state.filename, code);
                 })
         }
         if (this.state.alertState === 5) {

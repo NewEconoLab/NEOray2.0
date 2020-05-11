@@ -28,11 +28,11 @@ export class Arguments extends React.Component<IProps, IState>{
     private paramType = [
         { id: 'none', name: this.props.intl.message.invoke[ 10 ] },
         { id: 'String', name: 'String' },
-        { id: 'hex160', name: 'hex160' },
-        { id: 'hex256', name: 'hex256' },
+        { id: 'Hash160', name: 'hex160' },
+        { id: 'Hash256', name: 'hex256' },
         { id: 'Integer', name: 'Integer' },
         { id: 'Address', name: 'Address' },
-        { id: 'bytearray', name: 'bytearray' },
+        { id: 'ByteArray', name: 'bytearray' },
         { id: 'Array', name: this.props.intl.message.invoke[ 11 ] }
     ]
 

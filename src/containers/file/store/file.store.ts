@@ -166,8 +166,7 @@ class FileStore implements IFileStore {
         const result = await readOssFile(hash, language, false);
         if (result) {
             codeStore.initCode(hash, contractinfo.name, language, result, true);
-            const id = this.initFileCode(contractinfo.name + "." + language, result);
-            localStorage.setItem(id, result);
+            this.initFileCode(contractinfo.name + "." + language, result);
             this.currentFile = { id: hash, deploy: true };
         }
         const files = localStorage.getItem('NEORAY_FILES_HASHLOAD_NEO3');
@@ -204,6 +203,7 @@ class FileStore implements IFileStore {
         this.filelist = arr;
 
         localStorage.setItem("NEORAY_NOT_DEPLOYED_FILES_NEO3", JSON.stringify(arr));
+        localStorage.setItem(id, code);
         codeStore.initCode(id, name, language, code, false);
         this.currentFile = { id, deploy: false };
         return id;

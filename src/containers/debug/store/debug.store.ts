@@ -8,6 +8,7 @@ import { readOssFile, getContractDeployInfoByHash } from "@/containers/code/stor
 import { TreeView, TreeViewItems } from "@/utils/treeViewItem";
 import fileStore from "@/containers/file/store/file.store";
 import { notification } from "antd";
+import deployStore from "@/containers/deploy/store/deploy.store";
 
 class DebugStore implements IDebugStore {
     @observable public isStart: boolean = false;
@@ -29,7 +30,7 @@ class DebugStore implements IDebugStore {
         // this.currentTxid = "";
         if (common.address && codeStore.deploy) {
             try {
-                const result = await getTxidByAddressAndContract(common.address, codeStore.codeid, 1, 20);
+                const result = await getTxidByAddressAndContract(common.address, deployStore.currentCompileContractHash.replace('0x', ''), 1, 20);
                 this.txlist = result.map(value => ({ txid: value[ 'txid' ], time: value[ 'blockTimestamp' ] }));
             } catch (error) {
                 this.txlist = [];

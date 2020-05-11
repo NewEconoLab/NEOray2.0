@@ -33,7 +33,8 @@ export default {
     12: "Delete",
     13: "Creat new file",
     14: "Load deployed contract",
-    15: "Delete file"
+    15: "Delete file",
+    16: "载入合约模板"
   },
   deploy: {
     1: "Contract deployment",

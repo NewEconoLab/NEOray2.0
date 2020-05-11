@@ -34,7 +34,7 @@ export default class Button extends React.Component<IProps, {}> {
 	}
 
 	public render() {
-		const btnClassName = classnames('normal-button', this.props.btnSize, this.props.btnColor)
+		const btnClassName = classnames('normal-button', this.props.btnSize, this.props.btnColor, { 'disabled': this.props.disabled })
 		// this.props.smallbtn ? 'blue-btn' : 'button-group';
 
 		return (
