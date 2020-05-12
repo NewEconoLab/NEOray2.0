@@ -11,7 +11,7 @@ import Checkbox from '@/components/Checkbox';
 import { ICodeStore } from '../code/store/interface/code.interface';
 import { IDeployStore } from './store/interface/deploy.interface';
 import Toast from '@/components/Toast';
-import { notification, Tooltip } from 'antd';
+import { notification } from 'antd';
 import { IIntl } from '@/store/interface/intl.interface';
 import { IDebugStore } from '../debug/store/interface/debug.interface';
 
@@ -96,16 +96,12 @@ export default class Deploy extends React.Component<IProps, IState> {
 
                 <div className="sidebar-body">
                     <div className="compile-box">
-                        <Tooltip title="选择编译语言" placement="bottomLeft">
-                            <div className="line">
-                                <Select text="" ref={ this.selected } options={ this.options } placeholder="选择编译语言" />
-                            </div>
-                        </Tooltip>
-                        <Tooltip title="选择编译器版本" placement="bottomLeft">
-                            <div className="line">
-                                <Select text="" ref={ this.selectedVersion } options={ this.state.versionOptions } onCallback={ this.onSelectVersion } placeholder="选择编译器版本" />
-                            </div>
-                        </Tooltip>
+                        <div className="line">
+                            <Select text="" ref={ this.selected } options={ this.options } placeholder={ this.props.intl.message.deploy[ 11 ] } />
+                        </div>
+                        <div className="line">
+                            <Select text="" ref={ this.selectedVersion } options={ this.state.versionOptions } onCallback={ this.onSelectVersion } placeholder={ this.props.intl.message.deploy[ 10 ] } />
+                        </div>
                         { this.props.code.filename ?
                             <Button
                                 text={ `${this.props.intl.message.button[ 1 ]} ${this.props.code.filename}.${this.props.code.language === "python" ? 'py' : 'cs'}` }
@@ -116,9 +112,9 @@ export default class Deploy extends React.Component<IProps, IState> {
                     </div>
                     { this.state.compile &&
                         <>
-                            <div className="result-title">编译结果</div>
+                            <div className="result-title">{ this.props.intl.message.deploy[ 12 ] }</div>
                             <div className="result-box">
-                                <div className="result-header">合约名称</div>
+                                <div className="result-header">{ this.props.intl.message.deploy[ 13 ] }</div>
                                 <div className="result-body">
                                     <Input type="text" value={ this.state.name } onChange={ this.handleNameOnChange } />
                                 </div>
@@ -129,16 +125,16 @@ export default class Deploy extends React.Component<IProps, IState> {
                                         <div className="copy-icon" onClick={ this.onCopyValue.bind(this, this.state.scripthash) }><img src={ require("@/img/copy.png") } alt="" /></div>
                                     </div>
                                 </div>
-                                <Button text="下载编译文件" btnSize="full" onClick={ this.handleOnDownload } />
-                                <Button text="查看编译详情" btnSize="full" onClick={ this.showCompileInfo } />
+                                <Button text={ this.props.intl.message.deploy[ 14 ] } btnSize="full" onClick={ this.handleOnDownload } />
+                                <Button text={ this.props.intl.message.deploy[ 15 ] } btnSize="full" onClick={ this.showCompileInfo } />
                             </div>
                             <div className="deploy-box">
                                 {
                                     this.props.code.deploy ?
-                                        <Button text="合约已部署到测试网" btnSize="full" disabled={ true } /> :
-                                        <Button text="部署此合约到测试网" btnSize="full" onClick={ this.onDeploy } />
+                                        <Button text={ this.props.intl.message.deploy[ 17 ] } btnSize="full" disabled={ true } /> :
+                                        <Button text={ this.props.intl.message.deploy[ 18 ] } btnSize="full" onClick={ this.onDeploy } />
                                 }
-                                <div className="deploy-header result-header">合约部署选项</div>
+                                <div className="deploy-header result-header">{ this.props.intl.message.deploy[ 19 ] }</div>
                                 <div className="deploy-consloe">
                                     {/* <Checkbox text={ this.props.intl.message.deploy[ 5 ] } onClick={ this.handleCallOnClick } value={ this.state.call } /> */ }
                                     <Checkbox text={ this.props.intl.message.deploy[ 6 ] } onClick={ this.handleStorageOnClick } value={ this.state.storage } />
@@ -151,10 +147,10 @@ export default class Deploy extends React.Component<IProps, IState> {
                     }
                 </div>
                 { this.state.showInfo &&
-                    <Alertbox intl={ this.props.intl } title="编译详情" onClose={ this.handleAlertToClose } >
+                    <Alertbox intl={ this.props.intl } title={ this.props.intl.message.deploy[ 16 ] } onClose={ this.handleAlertToClose } >
                         <div className="compile-info">
                             <div className="compileinfo-header">
-                                <span>合约名称</span>
+                                <span>{ this.props.intl.message.deploy[ 13 ] }</span>
                                 <div className="copy-icon"
                                     onClick={ this.onCopyValue.bind(this, `${this.state.name}（${this.props.code.filename}.${this.props.code.language === "python" ? 'py' : 'cs'}）`) }>
                                     <img src={ require("@/img/copy.png") } alt="" />

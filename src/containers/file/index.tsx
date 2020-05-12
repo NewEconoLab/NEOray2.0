@@ -132,7 +132,7 @@ export default class SelectFile extends React.Component<IProps> {
                             {
                                 this.state.alertState === 4 &&
                                 <>
-                                    <div className="input-title">选择合约模板</div>
+                                    <div className="input-title">{ this.props.intl.message.files[ 18 ] }</div>
                                     <Select text="" options={ this.state.optionModel } onCallback={ this.onSelectFileModel } />
                                 </>
                             }
@@ -206,7 +206,7 @@ export default class SelectFile extends React.Component<IProps> {
     private importModel = () => {
         this.setState({
             showAlert: true,
-            alertTitle: "载入模板",
+            alertTitle: this.props.intl.message.files[ 17 ],
             alertState: 4,
         })
     }

@@ -68,7 +68,7 @@ export default class Invoke extends React.Component<IProps, IState> {
         currentFunctionName: ''
     }
 
-    private callOptions = [ { id: 'invokeRead', name: "在AVM虚拟机试运行" }, { id: 'invoke', name: "在测试网发交易" } ]
+    private callOptions = [ { id: 'invokeRead', name: this.props.intl.message.invoke[ 13 ] }, { id: 'invoke', name: this.props.intl.message.invoke[ 14 ] } ]
 
     public componentDidMount() {
         this.props.debug.stopDebug();
@@ -96,11 +96,11 @@ export default class Invoke extends React.Component<IProps, IState> {
                     <div className="invoke-box">
                         <div className="invoke-title"> <div>{ this.props.intl.message.invoke[ 4 ] }：</div><div className="input">{ this.props.code.filename }</div></div>
                         <div className="invoke-arg">
-                            <Select placeholder="选择运行环境" defaultValue={ this.callOptions[ 0 ].id } options={ this.callOptions } onCallback={ this.onCallbackState } text="" />
+                            <Select placeholder={ this.props.intl.message.invoke[ 12 ] } defaultValue={ this.callOptions[ 0 ].id } options={ this.callOptions } onCallback={ this.onCallbackState } text="" />
                         </div>
                         <div className="argument-label">
-                            <div className={ this.state.argmuntLabel === 0 ? "active" : "" } onClick={ this.onLabelChange.bind(this, 0) }>使用ABI参数</div>
-                            <div className={ this.state.argmuntLabel === 1 ? "active" : "" } onClick={ this.onLabelChange.bind(this, 1) }>手动填写参数</div>
+                            <div className={ this.state.argmuntLabel === 0 ? "active" : "" } onClick={ this.onLabelChange.bind(this, 0) }>{ this.props.intl.message.invoke[ 15 ] }</div>
+                            <div className={ this.state.argmuntLabel === 1 ? "active" : "" } onClick={ this.onLabelChange.bind(this, 1) }>{ this.props.intl.message.invoke[ 18 ] }</div>
                         </div>
                         <div className="argumentsBox">
                             {
@@ -108,11 +108,11 @@ export default class Invoke extends React.Component<IProps, IState> {
                                 <>
                                     <div className="invoke-arg">
                                         <div className="arg-title">
-                                            调用方法
+                                            { this.props.intl.message.invoke[ 16 ] }
                                         </div>
                                         <Select
                                             text=""
-                                            placeholder="选择调用的方法"
+                                            placeholder={ this.props.intl.message.invoke[ 17 ] }
                                             onCallback={ this.onSlectMethod }
                                             options={ this.state.methodsAbi.map(m => ({ id: m.name, name: m.name })) }
                                         />
@@ -134,7 +134,7 @@ export default class Invoke extends React.Component<IProps, IState> {
                             }
                         </div>
                         <div className="invoke-button">
-                            <Button text="运行合约" btnSize="bg-btn" onClick={ this.state.callState === "invoke" ? this.invoke : this.testRun } />
+                            <Button text={ this.props.intl.message.invoke[ 19 ] } btnSize="bg-btn" onClick={ this.state.callState === "invoke" ? this.invoke : this.testRun } />
                         </div>
                     </div> :
 

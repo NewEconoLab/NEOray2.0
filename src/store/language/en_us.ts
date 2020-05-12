@@ -34,7 +34,9 @@ export default {
     13: "Creat new file",
     14: "Load deployed contract",
     15: "Delete file",
-    16: "载入合约模板"
+    16: "Load example",
+    17: "Load example",
+    18: "Select a contract example"
   },
   deploy: {
     1: "Contract deployment",
@@ -46,6 +48,16 @@ export default {
     7: "Accept payment",
     8: "GAS needed to deploy contract",
     9: "Wallet balance",
+    10: "Compiler version",
+    11: "Compiler language",
+    12: "Compilation result",
+    13: "Contract name",
+    14: "Download compiled files",
+    15: "Scan compilation result",
+    16: "Compile details",
+    17: "Deployed contract",
+    18: "Deploy to testnet",
+    19: "Deployment options",
   },
   invoke: {
     1: "Contract call",
@@ -59,6 +71,14 @@ export default {
     9: "Parameter",
     10: "None",
     11: "Array",
+    12: "Select running environment",
+    13: "Test run on AVM",
+    14: "Run on testnet",
+    15: "ABI parameters",
+    16: "Method to call",
+    17: "Select a method to call",
+    18: "Manual parameters",
+    19: "Run contract",
   },
   debug: {
     1: "Contract debugging",
