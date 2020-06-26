@@ -44,7 +44,7 @@ export class ArgumentsTree extends React.Component<IProps, IState>{
         if (event.type === "none") {
             args.splice(index, 1);
         }
-        console.log("arguments tree", args);
+        // console.log("arguments tree", args);
 
         this.setState({ arguments: args }, () => {
             this.props.onChange(args)

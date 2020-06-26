@@ -21,10 +21,6 @@ class FileStore implements IFileStore {
      * 添加新文件名
      */
     @action public addToCodeList = (filename: string) => {
-        const time = new Date().getTime();
-        const id = ThinNeo.Helper.String2Bytes(time + filename).toHexString();
-        const files = localStorage.getItem('NEORAY_NOT_DEPLOYED_FILES_NEO3');
-        let arr: any[] = [];
         const index = filename.lastIndexOf("\.");
         let language = filename.substring(index + 1, filename.length);
         let name = filename.substring(0, index);
@@ -32,16 +28,35 @@ class FileStore implements IFileStore {
             name = filename;
             language = 'cs';
         }
+        const id = this.initFileCode(
+            name + "." + language,
+            `using Neo.SmartContract.Framework;
+using Neo.SmartContract.Framework.Services.Neo;
+using System;
+using System.Numerics;
 
-        if (files) {
-            arr = JSON.parse(files);
+// Replace Template with your project name
+namespace Template
+{
+    public class Template : SmartContract
+    {
+        public static object Main(string method, object[] args)
+        {
+            if (Runtime.Trigger == TriggerType.Verification)
+            {
+                //Modify according to your specific needs
+                return false;
+            }
+            else if (Runtime.Trigger == TriggerType.Application)
+            {
+                //Add the code associated with the contract invocation here
+                
+            }
+            return false;
         }
-        arr.push({ id, name: name ? name : "untitled", language })
-        this.filelist = arr;
-        console.log('filelist', arr);
-
-        localStorage.setItem("NEORAY_NOT_DEPLOYED_FILES_NEO3", JSON.stringify(arr));
-        codeStore.initCode(id, name, language, "", false);
+    }
+}
+`);
         this.currentFile = { id, deploy: false };
         return id;
     }

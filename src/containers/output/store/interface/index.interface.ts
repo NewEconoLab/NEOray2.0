@@ -22,6 +22,7 @@ export interface IOutputProps {
 export interface IOutputMessage {
     type: OutputType;
     txid?: string;
+    dumpinfo?: string;
     result?: any;
     title: string;
     value: { [ key: string ]: any };

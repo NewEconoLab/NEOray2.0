@@ -7,6 +7,7 @@ import MonacoEditor from 'react-monaco-editor';
 import { editor } from 'monaco-editor';
 import { ICodeProps } from './store/interface/code.interface';
 import * as monacoEditor from 'monaco-editor/esm/vs/editor/editor.api';
+// import { languages } from 'monaco-editor/esm/vs/editor/editor.api'
 import common from '@/store/common';
 @observer
 export default class CodeBox extends React.Component<ICodeProps> {
@@ -52,13 +53,57 @@ export default class CodeBox extends React.Component<ICodeProps> {
         }
     }
 
+    // private createDependencyProposals = () => {
+    //     return [
+    //         {
+    //             label: 'context', // 显示的提示名称
+    //             insertText: 'context' // 选择后粘贴到编辑器中的文字
+    //         },
+    //         {
+    //             label: 'BuyGoods()', // 显示的提示名称
+    //             kind: 1,// 图标显示类型
+    //             insertText: 'BuyGoods(CSTradeScriptContext context, StockPrice price)',
+    //             childs: [// 该方法的子类方法，可通过点语法调用
+    //                 {
+    //                     label: 'Goods1()',
+    //                     insertText: 'Goods1()'
+    //                 }, {
+    //                     label: 'Goods2()',
+    //                     insertText: 'Goods2()'
+    //                 }
+    //             ]
+    //         }
+    //     ]
+    // }
+
     // 编译器加载完毕事件
     private editorDidMount = (e: editor.IStandaloneCodeEditor, monaco: typeof monacoEditor) => {
         // console.log('editorDidMount', e);
         this.editor = e;
         this.props.codeStore.initEditor(e);
         this.editor.focus();
+        // monaco.languages.registerCompletionItemProvider('csharp', {
+        //     provideCompletionItems: (model, position) => {
+        //         // 自定义匹配逻辑....
+        //         const textUntilPosition = model.getValueInRange({
+        //             startLineNumber: 1,
+        //             startColumn: 1,
+        //             endLineNumber: position.lineNumber,
+        //             endColumn: position.column
+        //         });
+        //         const match = textUntilPosition.match(/\s*$/);
+        //         const suggestions = match ? this.createDependencyProposals() : [];
 
+        //         // 点方法调用
+        //         if (textUntilPosition.charAt(textUntilPosition.length - 1) === '.') {
+        //             // 当是点时匹配自定义的方法 ...
+        //         } else {
+        //             return { suggestions: suggestions } as unknown as languages.CompletionList;
+        //         }
+        //         return;
+        //     },
+        //     triggerCharacters: [ '.' ] // 写触发提示的字符，可以有多个
+        // })
         common.event.addListener('setPosition', (line) => {
             this.removeBreakPoint();
             const model = e.getModel();
@@ -76,9 +121,6 @@ export default class CodeBox extends React.Component<ICodeProps> {
         common.event.addListener('delPosition', (line) => {
             this.removeBreakPoint(line);
         })
-        // setTimeout(() => {
-        //     e.setPosition({ "lineNumber": 5, "column": 1 })
-        // }, 10000);
         window.onresize = () => {
             this.editorLayout();
         };

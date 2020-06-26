@@ -9,7 +9,7 @@ export interface IDebugStore {
     dumpstr: string;
     notify: string;
     initTxList: () => void;
-    startDebug: (txid: string) => void;
+    startDebug: (txid: string, dumpstr?: string) => void;
     stopDebug: () => void;
     onDebug: (line: number) => void;
     onTxidChange: (txid: string) => void

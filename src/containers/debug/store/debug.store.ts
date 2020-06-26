@@ -45,9 +45,9 @@ class DebugStore implements IDebugStore {
         this.currentTxid = txid;
     }
 
-    @action public startDebug = async (txid: string) => {
+    @action public startDebug = async (txid: string, dumpstr?: string) => {
         try {
-            const dumpResult = await getDumpInfoByTxid(txid);
+            const dumpResult = txid ? (await getDumpInfoByTxid(txid)) : [ { dumpinfo: dumpstr } ];
             this.initNotify();
             if (dumpResult) {
                 this.isStart = true;
@@ -80,16 +80,12 @@ class DebugStore implements IDebugStore {
                     this.simVM = new ThinNeo.Debug.SimVM();
                     this.simVM.Execute(dumpinfo);
                     this.dumpinfo = "";
-                    // 预先获得所有需要加载的 avm等信息
-                    this.showCareInfo(this.simVM.careinfo)
-                    // this.careInfo.setValue(careInfoStr)
-                    // this.stackarr = [];
-                    this.dumpScript(this.simVM.regenScript, 1);
-
-                    // this.fulllogEditor.on("cursorActivity", (res) =>
-                    // {
-                    //     this.debug()
-                    // })
+                    // setTimeout目的是为了将数据渲染方法放入异步队列宏任务中，这样优先执行同步任务和微任务队列，当页面careInfo-msg 模块渲染完成之后再执行数据塞入的任务就不会出现，找到不到模块的问题了
+                    setTimeout(() => {
+                        // 预先获得所有需要加载的 avm等信息
+                        this.showCareInfo(this.simVM.careinfo)
+                        this.dumpScript(this.simVM.regenScript, 1);
+                    }, 0);
                 }
             }
             else {
@@ -97,7 +93,6 @@ class DebugStore implements IDebugStore {
             }
         } catch (error) {
             console.log(error);
-
             notification.error({ "message": "当前交易未收录" })
         }
     }

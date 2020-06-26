@@ -100,8 +100,14 @@ class InvokeStore implements IInvokeStore {
     }
 
     @action public invokescript = async (args: InvokeReadInput) => {
-        const result = await Teemo.NEO.invokeRead(args);
+        // const result = await Teemo.NEO.invokeRead(args);
+        const invokeArgs: Argument[] = [
+            { type: "String", value: args.operation },
+            { type: "Array", value: args.arguments ? args.arguments : [] }
+        ];
+        const script = this.buildScript(invokeArgs);
         const name = codeStore.filename;
+        const result = await invokescript(script.toHexString());
         OutputStore.addOutputMessage(
             {
                 "type": OutputType.tree,
@@ -110,7 +116,8 @@ class InvokeStore implements IInvokeStore {
                     "Invoke Paramenters": JSON.stringify(args),
                     "Result Code": ""
                 },
-                "result": result
+                "result": result,
+                "dumpinfo": result[ 0 ][ 'dumpInfo' ] ? result[ 0 ][ 'dumpInfo' ] : ""
             }
         )
         return result
@@ -128,7 +135,8 @@ class InvokeStore implements IInvokeStore {
                     "Invoke Paramenters": JSON.stringify(args),
                     "Result Code": ""
                 },
-                "result": result ? result[ 0 ] : ""
+                "result": result ? result[ 0 ] : "",
+                "dumpinfo": result[ 0 ][ 'dumpInfo' ] ? result[ 0 ][ 'dumpInfo' ] : ""
             }
         )
         return result

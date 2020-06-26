@@ -75,11 +75,11 @@ export default class OutputBox extends React.Component<IOutputProps> {
         if (item.type === OutputType.tree) {
             return (<>
                 <FileTree title={ item.title } key={ index + OutputType[ item.type ] } view=
-                    { item.txid &&
+                    { (item.txid || item.dumpinfo) &&
                         <Button
                             text={ this.props.intl.message.button[ 9 ] }
                             style={ { margin: '0 30px' } }
-                            onClick={ this.toDebug.bind(this, item.txid) }
+                            onClick={ this.toDebug.bind(this, item.txid, item.dumpinfo) }
                             key={ index + OutputType[ item.type ] + "btn" }
                         /> }>
                     { item.value && <>
@@ -157,10 +157,12 @@ export default class OutputBox extends React.Component<IOutputProps> {
         this.props.output.toPage(title);
     }
 
-    private toDebug = (txid: string) => {
+    private toDebug = (txid: string, dumpinfo?: string) => {
         // this.props.
         this.props.history.push("debug")
-        this.props.debug.startDebug(txid)
+        setTimeout(() => {
+            this.props.debug.startDebug(txid, dumpinfo)
+        }, 1000);
     }
 
 }

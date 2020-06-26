@@ -170,7 +170,7 @@ export default class Invoke extends React.Component<IProps, IState> {
     private onChange = (event: IArgument[]) => {
         const jsonstr = event.length > 0 ? JSON.stringify(event, null, 3) : "";
         this.setState({ args: event, jsonStr: jsonstr })
-        console.log(event);
+        // console.log(event);
     }
 
     private onSlectMethod = (event: IOptions) => {
