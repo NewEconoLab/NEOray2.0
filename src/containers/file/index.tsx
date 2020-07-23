@@ -14,6 +14,7 @@ import { IIntl } from '@/store/interface/intl.interface';
 import { IDebugStore } from '../debug/store/interface/debug.interface';
 import Select, { IOptions } from '@/components/select';
 import { readFile } from '../code/store/api/common.api';
+import { IDeployStore } from '../deploy/store/interface/deploy.interface';
 
 interface IProps {
     route: {
@@ -25,8 +26,9 @@ interface IProps {
     file: IFileStore,
     intl: IIntl,
     debug: IDebugStore,
+    deploy: IDeployStore,
 }
-@inject('common', 'code', 'file', 'intl', 'debug')
+@inject('common', 'code', 'file', 'intl', 'debug', 'deploy')
 @observer
 export default class SelectFile extends React.Component<IProps> {
 
@@ -259,12 +261,30 @@ export default class SelectFile extends React.Component<IProps> {
                             scripthash: ""
                         })
                     }
+                    return this.props.deploy.compile('3.0.0-Preview2');
+                })
+                .then(result => {
+                    sessionStorage.setItem("NEORAY-NEO3-compile-hash", result.scripthash);
+                    sessionStorage.setItem("NEORAY-NEO3-compile-version" + result.scripthash, "3.0.0-Preview2");
+                })
+                .catch(err => {
+                    console.log(err);
                 })
         }
         if (this.state.alertState === 4) {
             readFile(this.state.modelUrl)
                 .then(code => {
-                    this.props.file.initFileCode(this.state.filename, code);
+                    return this.props.file.initFileCode(this.state.filename, code);
+                })
+                .then(res => {
+                    return this.props.deploy.compile('3.0.0-Preview2');
+                })
+                .then(result => {
+                    sessionStorage.setItem("NEORAY-NEO3-compile-hash", result.scripthash);
+                    sessionStorage.setItem("NEORAY-NEO3-compile-version" + result.scripthash, "3.0.0-Preview2");
+                })
+                .catch(err => {
+                    console.log(err);
                 })
         }
         if (this.state.alertState === 5) {
