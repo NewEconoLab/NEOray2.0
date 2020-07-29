@@ -113,6 +113,7 @@ export default {
     6: "Compile failed",
     7: "Deploy contract",
     8: "Trial run",
+    9: "Compiling......"
   },
   toast: {
     1: "Login successful",

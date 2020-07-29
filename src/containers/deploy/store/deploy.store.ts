@@ -57,7 +57,7 @@ class DeployStore implements IDeployStore {
     }
 
     @action public compile = async (version) => {
-        OutputStore.addOutputMessage({ type: OutputType.message, title: '正在编译...', value: {} })
+        OutputStore.addOutputMessage({ type: OutputType.message, title: intl.message.output[ 9 ], value: {} })
         let result;
         if (codeStore.language === "python") {
             result = await compilePythonContractFile(
