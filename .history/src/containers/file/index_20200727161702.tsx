@@ -330,14 +330,6 @@ export default class SelectFile extends React.Component<IProps> {
 
     private onFileClick = (file) => {
         this.props.file.openFileCode(file.id);
-        this.props.deploy.compile('3.0.0-Preview2')
-        .then(result => {
-            sessionStorage.setItem("NEORAY-NEO3-compile-hash", result.scripthash);
-            sessionStorage.setItem("NEORAY-NEO3-compile-version" + result.scripthash, "3.0.0-Preview2");
-        })
-        .catch(err => {
-            console.log(err);
-        })
     }
 
     private initTemplateList = async () => {

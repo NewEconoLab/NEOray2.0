@@ -32,6 +32,7 @@ export default class CodeBox extends React.Component<ICodeProps> {
                 </div>
                 <div className="code-main">
                     <MonacoEditor
+                        id="code-editor"
                         language={ this.props.codeStore.language }
                         theme="vs-dark"
                         value={ this.props.codeStore.code }
